@@ -1,1 +1,1 @@
-mod simple_latin_symbols;
+pub mod simple_latin_symbols;

@@ -1,5 +1,5 @@
-mod encoder;
-mod fingerprint;
+pub mod encoder;
+pub mod fingerprint;
 
 #[cfg(test)]
 mod tests {
