@@ -44,7 +44,7 @@ impl Fingerprint {
         self._text = text.to_string();
         self
     }
-    pub fn _arc_from(angle_start: f64, angle_end: f64, radius: f64) -> Box<Arc> {
+    fn _new_arc(angle_start: f64, angle_end: f64, radius: f64, clockwise: bool) -> Box<Arc> {
         let mut arc_angle;
         let end_point = (radius * (angle_end.cos()), radius * (angle_end.sin()));
         if angle_end > angle_start {
@@ -56,8 +56,20 @@ impl Fingerprint {
         Box::new(Arc {
             radius: (radius, radius),
             x_axis_rotation: 0.0,
-            large_arc_flag: !is_large,
-            sweep_flag: false,
+            large_arc_flag: is_large || !clockwise,
+            sweep_flag: clockwise,
+            point: end_point,
+            coordinate_type: Absolute,
+        })
+    }
+    fn _new_nose(&self, angle: f64, radius: f64, clockwise: bool) -> Box<Arc> {
+        let end_point = (radius * (angle.cos()), radius * (angle.sin()));
+
+        Box::new(Arc {
+            radius: (self._nose_size, self._nose_size),
+            x_axis_rotation: 0.0,
+            large_arc_flag: false,
+            sweep_flag: !clockwise,
             point: end_point,
             coordinate_type: Absolute,
         })
@@ -66,6 +78,7 @@ impl Fingerprint {
         let mut path = Path::new();
         let mut current_angle: f64 = 0.;
         let mut current_end_path = (self._inner_circle_radius, 0.);
+        let mut clockwise = true;
         let mut current_dist_to_center = self._inner_circle_radius;
         self._encoded_text = simple_latin_symbols::encode(&self._text);
 
@@ -85,16 +98,16 @@ impl Fingerprint {
             current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
             println!("curr angle: {} ({})", current_angle, current_char);
 
-            let arc = Self::_arc_from(previous_angle, current_angle, current_dist_to_center);
+            let arc = Self::_new_arc(
+                previous_angle,
+                current_angle,
+                current_dist_to_center,
+                clockwise,
+            );
             current_dist_to_center += 50.;
-            let move_to = Box::new(MoveTo {
-                point: (
-                    current_angle.cos() * current_dist_to_center,
-                    current_angle.sin() * current_dist_to_center,
-                ),
-                coordinate_type: Absolute,
-            });
-            path = path.add_commands(vec![arc, move_to]);
+            let nose = self._new_nose(current_angle, current_dist_to_center, clockwise);
+            path = path.add_commands(vec![arc, nose]);
+            clockwise = !clockwise;
         }
 
         self._svg_document
