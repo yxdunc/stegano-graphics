@@ -1,9 +1,10 @@
 use crate::encoder::simple_latin_symbols;
 use std::f64::consts::PI;
-use svg_composer::element::attributes::{Color, ColorName, Paint, StrokeWidth};
+use svg_composer::element::attributes::{Color, ColorName, Paint, Size, StrokeLineCap};
 use svg_composer::element::circle::Circle;
 use svg_composer::element::path::command::CoordinateType::Absolute;
 use svg_composer::element::path::command::{Arc, MoveTo};
+use svg_composer::element::rect::Rectangle;
 use svg_composer::element::{Element, Path};
 use svg_composer::Document;
 
@@ -85,15 +86,15 @@ impl Fingerprint {
     pub fn render(&mut self) -> String {
         let mut path = Path::new();
         let mut current_angle: f64 = 0.;
-        let mut current_end_path = (self._inner_circle_radius, 0.);
         let mut clockwise = true;
         let mut current_dist_to_center = self._inner_circle_radius;
         self._encoded_text = simple_latin_symbols::encode(&self._text);
 
         path = path
             .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(0, 0, 0, 255)))
-            .set_stroke_width(StrokeWidth::from_length(2.))
+            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
+            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
+            .set_stroke_linecap(StrokeLineCap::Round)
             .add_commands(vec![Box::new(MoveTo {
                 point: (
                     current_angle.cos() * current_dist_to_center,
@@ -120,6 +121,12 @@ impl Fingerprint {
 
         self._svg_document
             .add_elements(vec![
+                Box::new(
+                    Rectangle::new()
+                        .set_pos((-1000., -1000.))
+                        .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+                        .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+                ),
                 Box::new(path),
                 Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
             ])
@@ -128,8 +135,8 @@ impl Fingerprint {
     fn _compute_inner_circle_radius(nb_sections: i8, nose_size: f64) -> f64 {
         (nb_sections as f64 * nose_size * 2.) / 2. * PI
     }
-    fn _compute_stroke_width(nb_sections: f64, nose_size: f64) -> f64 {
+    fn _compute_stroke_width(&self) -> f64 {
         // TODO
-        1.
+        20.
     }
 }
