@@ -1,6 +1,6 @@
 use crate::encoder::simple_latin_symbols;
 use std::f64::consts::PI;
-use svg_composer::element::attributes::{Color, ColorName, Paint};
+use svg_composer::element::attributes::{Color, ColorName, Paint, StrokeWidth};
 use svg_composer::element::circle::Circle;
 use svg_composer::element::path::command::CoordinateType::Absolute;
 use svg_composer::element::path::command::{Arc, MoveTo};
@@ -44,19 +44,27 @@ impl Fingerprint {
         self._text = text.to_string();
         self
     }
-    fn _new_arc(angle_start: f64, angle_end: f64, radius: f64, clockwise: bool) -> Box<Arc> {
+    fn _new_arc(angle_1: f64, angle_2: f64, radius: f64, clockwise: bool) -> Box<Arc> {
         let mut arc_angle;
-        let end_point = (radius * (angle_end.cos()), radius * (angle_end.sin()));
-        if angle_end > angle_start {
-            arc_angle = angle_end - angle_start;
+        let end_point = (radius * (angle_2.cos()), radius * (angle_2.sin()));
+        if clockwise {
+            if angle_1 > angle_2 {
+                arc_angle = angle_2 + (2. * PI - angle_1);
+            } else {
+                arc_angle = angle_2 - angle_1;
+            }
         } else {
-            arc_angle = angle_end + (2. * PI - angle_start);
+            if angle_1 < angle_2 {
+                arc_angle = angle_1 + (2. * PI - angle_2);
+            } else {
+                arc_angle = angle_1 - angle_2;
+            }
         }
         let is_large = arc_angle > PI;
         Box::new(Arc {
             radius: (radius, radius),
             x_axis_rotation: 0.0,
-            large_arc_flag: is_large || !clockwise,
+            large_arc_flag: is_large,
             sweep_flag: clockwise,
             point: end_point,
             coordinate_type: Absolute,
@@ -85,6 +93,7 @@ impl Fingerprint {
         path = path
             .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
             .set_stroke(Paint::from_color(Color::from_rgba(0, 0, 0, 255)))
+            .set_stroke_width(StrokeWidth::from_length(2.))
             .add_commands(vec![Box::new(MoveTo {
                 point: (
                     current_angle.cos() * current_dist_to_center,
@@ -96,7 +105,6 @@ impl Fingerprint {
         for current_char in &self._encoded_text {
             let previous_angle = current_angle;
             current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
-            println!("curr angle: {} ({})", current_angle, current_char);
 
             let arc = Self::_new_arc(
                 previous_angle,
