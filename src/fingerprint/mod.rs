@@ -350,16 +350,40 @@ impl Fingerprint {
         section_2: i8,
         clockwise: bool,
     ) -> Vec<Box<dyn Command>> {
-        let is_raising = section_1 < section_2;
+        let is_raising =
+            self._sections_height[section_1 as usize] < self._sections_height[section_2 as usize];
         let section_1 = section_1 as f64;
         let section_2 = section_2 as f64;
 
-        let height_change = if is_raising && !clockwise || !is_raising && clockwise {
-            -0.5
+        println!(">>> is raising: {}", is_raising);
+        println!(">>> is clockwise: {}", clockwise);
+        let height_change = if is_raising && clockwise {
+            0.5 //
+        } else if !is_raising && !clockwise {
+            -0.5 //
+        } else if is_raising && !clockwise {
+            0.5 //
         } else {
-            0.5
+            -0.5 //
         };
-        let angle_change = if is_raising { -0.5 } else { 0.5 };
+        let angle_change = if is_raising && clockwise {
+            -0.5 //
+        } else if !is_raising && !clockwise {
+            0.5 //
+        } else if is_raising && !clockwise {
+            0.5 //
+        } else {
+            -0.5 //
+        };
+        let sweep = if is_raising && clockwise {
+            false
+        } else if !is_raising && !clockwise {
+            false
+        } else if is_raising && !clockwise {
+            true //
+        } else {
+            true //
+        };
         let turn_1_end_radius = self._inner_circle_radius
             + (self._sections_height[section_1 as usize] as f64 + height_change) * 50.;
         let turn_1_end_angle =
@@ -389,7 +413,7 @@ impl Fingerprint {
                 radius: (self._nose_size, self._nose_size),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
-                sweep_flag: true,
+                sweep_flag: sweep,
                 point: turn_1_end_point,
                 coordinate_type: Absolute,
             }),
@@ -402,7 +426,7 @@ impl Fingerprint {
                 radius: (self._nose_size, self._nose_size),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
-                sweep_flag: false,
+                sweep_flag: !sweep,
                 point: turn_2_end_point,
                 coordinate_type: Absolute,
             }),
