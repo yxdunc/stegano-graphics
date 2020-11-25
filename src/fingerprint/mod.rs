@@ -376,9 +376,9 @@ impl Fingerprint {
             -0.5 //
         };
         let sweep = if is_raising && clockwise {
-            false
+            false //
         } else if !is_raising && !clockwise {
-            false
+            false //
         } else if is_raising && !clockwise {
             true //
         } else {
@@ -410,7 +410,7 @@ impl Fingerprint {
 
         let result: Vec<Box<dyn Command>> = vec![
             Box::new(Arc {
-                radius: (self._nose_size, self._nose_size),
+                radius: ((25., 25.)),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
                 sweep_flag: sweep,
@@ -423,7 +423,7 @@ impl Fingerprint {
                 coordinate_type: Absolute,
             }),
             Box::new(Arc {
-                radius: (self._nose_size, self._nose_size),
+                radius: (25., 25.),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
                 sweep_flag: !sweep,
