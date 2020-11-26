@@ -104,10 +104,6 @@ impl Fingerprint {
         let distance_to_center =
             self._inner_circle_radius + self._sections_height[section as usize] as f64 * 50.;
         let angular_len_nose = self._nose_size * 18. / distance_to_center;
-        println!(
-            "-->angular nose: {}\n-->distance_to_center: {}\n-->nose_size: {}",
-            angular_len_nose, distance_to_center, self._nose_size
-        );
         if clockwise {
             self._angle_from_section(section) - angular_len_nose
         } else {
@@ -126,22 +122,12 @@ impl Fingerprint {
         let mut sections = self._generate_section_list(section_1, section_2, clockwise);
         let mut compressed_arc: Vec<Box<dyn Command>> = Vec::new();
 
-        println!(
-            "section_1: {}, section_2: {}, clockwise: {}",
-            section_1, section_2, clockwise
-        );
-        println!("sections: {:?}", sections);
         let mut previous_section = sections.remove(0);
-        println!("popped ' ' sections: {:?}", sections);
         let mut height_increment_to_apply_after_arc: Vec<i32> = vec![0; self._nb_sections as usize];
         for i in 0..sections.len() {
             let section = sections[i];
             let radius =
                 self._inner_circle_radius + self._sections_height[section as usize] as f64 * 50.;
-            println!(
-                "[{}], radius: {}",
-                previous_section, self._sections_height[section as usize]
-            );
             let mut angle_1 = self._angle_from_section(previous_section);
             let mut angle_2 = self._angle_from_section(section);
             if i == sections.len() - 1 {
@@ -170,12 +156,15 @@ impl Fingerprint {
                     section,
                     clockwise,
                 ));
+                let height_difference = (self._sections_height[section as usize]
+                    - self._sections_height[previous_section as usize])
+                    .abs();
+
                 if !clockwise {
                     height_increment_to_apply_after_arc[previous_section as usize] =
-                        self._sections_height[section as usize];
+                        height_difference;
                 } else {
-                    height_increment_to_apply_after_arc[section as usize] =
-                        self._sections_height[previous_section as usize];
+                    height_increment_to_apply_after_arc[section as usize] = height_difference;
                 }
             } else {
                 compressed_arc.push(Box::new(Arc {
@@ -195,6 +184,7 @@ impl Fingerprint {
             "## sections_height_to_add {:?}",
             height_increment_to_apply_after_arc
         );
+        println!("## sections_heights       {:?}", self._sections_height);
         self._sections_height = self
             ._sections_height
             .clone()
@@ -355,8 +345,6 @@ impl Fingerprint {
         let section_1 = section_1 as f64;
         let section_2 = section_2 as f64;
 
-        println!(">>> is raising: {}", is_raising);
-        println!(">>> is clockwise: {}", clockwise);
         let height_change = if is_raising && clockwise {
             0.5 //
         } else if !is_raising && !clockwise {
