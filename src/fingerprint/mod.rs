@@ -160,7 +160,9 @@ impl Fingerprint {
                     - self._sections_height[previous_section as usize])
                     .abs();
 
-                if !clockwise {
+                if self._sections_height[section as usize]
+                    > self._sections_height[previous_section as usize]
+                {
                     height_increment_to_apply_after_arc[previous_section as usize] =
                         height_difference;
                 } else {
@@ -372,6 +374,21 @@ impl Fingerprint {
         } else {
             true //
         };
+        let nose_mysterious_factor = 16.;
+        let turn_1_start_radius =
+            self._inner_circle_radius + (self._sections_height[section_1 as usize] as f64) * 50.;
+        let angular_len_nose = if clockwise {
+            self._nose_size * nose_mysterious_factor / turn_1_start_radius * -1.
+        } else {
+            self._nose_size * nose_mysterious_factor / turn_1_start_radius
+        };
+        let turn_1_start_angle = (section_1 - angle_change) as f64
+            * (2. * PI / self._nb_sections as f64)
+            + angular_len_nose;
+        let turn_1_start_point = (
+            turn_1_start_radius * (turn_1_start_angle.cos()),
+            turn_1_start_radius * (turn_1_start_angle.sin()),
+        );
         let turn_1_end_radius = self._inner_circle_radius
             + (self._sections_height[section_1 as usize] as f64 + height_change) * 50.;
         let turn_1_end_angle =
@@ -390,15 +407,42 @@ impl Fingerprint {
         );
         let turn_2_end_radius =
             self._inner_circle_radius + (self._sections_height[section_2 as usize] as f64) * 50.;
-        let turn_2_end_angle = section_2 as f64 * (2. * PI / self._nb_sections as f64);
+        let angular_len_nose = if clockwise {
+            self._nose_size * nose_mysterious_factor / turn_1_end_radius * -1.
+        } else {
+            self._nose_size * nose_mysterious_factor / turn_1_end_radius
+        };
+
+        let turn_2_end_angle = (section_2 + angle_change) as f64
+            * (2. * PI / self._nb_sections as f64)
+            - angular_len_nose;
         let turn_2_end_point = (
             turn_2_end_radius * (turn_2_end_angle.cos()),
             turn_2_end_radius * (turn_2_end_angle.sin()),
         );
+        let end_section_angle = section_2 as f64 * (2. * PI / self._nb_sections as f64);
+        let end_section_point = (
+            turn_2_end_radius * (end_section_angle.cos()),
+            turn_2_end_radius * (end_section_angle.sin()),
+        );
+
+        let angle_2_radius = (
+            (turn_1_end_point.1 - turn_2_start_point.1).abs(),
+            (turn_1_end_point.1 - turn_2_start_point.1).abs(),
+            // (turn_1_end_point.0 - turn_2_start_point.0).abs(),
+        );
 
         let result: Vec<Box<dyn Command>> = vec![
             Box::new(Arc {
-                radius: ((25., 25.)),
+                radius: (turn_1_start_radius, turn_1_start_radius),
+                x_axis_rotation: 0.0,
+                large_arc_flag: false,
+                sweep_flag: clockwise,
+                point: turn_1_start_point,
+                coordinate_type: Absolute,
+            }),
+            Box::new(Arc {
+                radius: (30., 30.),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
                 sweep_flag: sweep,
@@ -411,11 +455,19 @@ impl Fingerprint {
                 coordinate_type: Absolute,
             }),
             Box::new(Arc {
-                radius: (25., 25.),
+                radius: (30., 30.),
                 x_axis_rotation: 0.0,
                 large_arc_flag: false,
                 sweep_flag: !sweep,
                 point: turn_2_end_point,
+                coordinate_type: Absolute,
+            }),
+            Box::new(Arc {
+                radius: (turn_2_end_radius, turn_2_end_radius),
+                x_axis_rotation: 0.0,
+                large_arc_flag: false,
+                sweep_flag: clockwise,
+                point: end_section_point,
                 coordinate_type: Absolute,
             }),
         ];
