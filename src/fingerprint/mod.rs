@@ -30,11 +30,11 @@ pub struct Fingerprint {
 
 impl Fingerprint {
     pub fn new() -> Self {
-        let _nb_sections = 26;
+        let _nb_sections = 28;
         let _nose_size = 2.;
         Fingerprint {
             _nb_sections,
-            _sections_height: vec![0; _nb_sections as usize],
+            _sections_height: vec![0; _nb_sections as usize * 2],
             _inner_circle_radius: Self::_compute_inner_circle_radius(_nb_sections, _nose_size),
             _nose_size,
             _max_radius: DEFAULT_MAX_RADIUS,
@@ -80,7 +80,7 @@ impl Fingerprint {
         if clockwise {
             if section_1 > section_2 {
                 section_list = [
-                    (section_1..self._nb_sections).collect::<Vec<i8>>(),
+                    (section_1..self._nb_sections * 2).collect::<Vec<i8>>(),
                     (0..section_2 + 1).collect::<Vec<i8>>(),
                 ]
                 .concat();
@@ -91,7 +91,9 @@ impl Fingerprint {
             if section_1 < section_2 {
                 section_list = [
                     (0..section_1 + 1).rev().collect::<Vec<i8>>(),
-                    (section_2..self._nb_sections).rev().collect::<Vec<i8>>(),
+                    (section_2..self._nb_sections * 2)
+                        .rev()
+                        .collect::<Vec<i8>>(),
                 ]
                 .concat();
             } else {
@@ -104,14 +106,16 @@ impl Fingerprint {
         let distance_to_center =
             self._inner_circle_radius + self._sections_height[section as usize] as f64 * 50.;
         let angular_len_nose = self._nose_size * 18. / distance_to_center;
+        let section_angle = Self::_angle_from_section(section, self._nb_sections as i32 * 2);
         if clockwise {
-            self._angle_from_section(section) - angular_len_nose
+            section_angle - angular_len_nose
         } else {
-            self._angle_from_section(section) + angular_len_nose
+            section_angle + angular_len_nose
         }
     }
-    fn _angle_from_section(&self, section: i8) -> f64 {
-        section as f64 * (2. * PI / self._nb_sections as f64)
+    fn _angle_from_section(section: i8, nb_sections: i32) -> f64 {
+        let nb_sections: f64 = nb_sections as f64;
+        section as f64 * (2. * PI / nb_sections)
     }
     fn _new_compressed_arc(
         &mut self,
@@ -119,26 +123,25 @@ impl Fingerprint {
         section_2: i8,
         clockwise: bool,
     ) -> Vec<Box<dyn Command>> {
-        let mut sections = self._generate_section_list(section_1, section_2, clockwise);
+        let mut sections = self._generate_section_list(section_1 * 2, section_2 * 2, clockwise);
         let mut compressed_arc: Vec<Box<dyn Command>> = Vec::new();
 
         let mut previous_section = sections.remove(0);
-        let mut height_increment_to_apply_after_arc: Vec<i32> = vec![0; self._nb_sections as usize];
+        let mut height_increment_to_apply_after_arc: Vec<i32> =
+            vec![0; self._nb_sections as usize * 2];
+        println!("## sections {:?}", sections);
         for i in 0..sections.len() {
             let section = sections[i];
             let radius =
                 self._inner_circle_radius + self._sections_height[section as usize] as f64 * 50.;
-            let mut angle_1 = self._angle_from_section(previous_section);
-            let mut angle_2 = self._angle_from_section(section);
+            let mut angle_1 =
+                Self::_angle_from_section(previous_section, self._nb_sections as i32 * 2);
+            let mut angle_2 = Self::_angle_from_section(section, self._nb_sections as i32 * 2);
             if i == sections.len() - 1 {
                 angle_2 = self._compute_nosed_angle(section, clockwise);
             }
             let starting_point: (f64, f64) = (radius * (angle_1.cos()), radius * (angle_1.sin()));
             let end_point: (f64, f64) = (radius * (angle_2.cos()), radius * (angle_2.sin()));
-            // compressed_arc.push(Box::new(MoveTo {
-            //     point: starting_point,
-            //     coordinate_type: Absolute,
-            // }));
             if self._sections_height[previous_section as usize]
                 != self._sections_height[section as usize]
             {
@@ -169,6 +172,9 @@ impl Fingerprint {
                     height_increment_to_apply_after_arc[section as usize] = height_difference;
                 }
             } else {
+                println!("angle 1: {}, angle 2: {}", angle_1, angle_2);
+                println!("endpoint: {:?}", end_point);
+
                 compressed_arc.push(Box::new(Arc {
                     radius: (radius, radius),
                     x_axis_rotation: 0.0,
@@ -210,6 +216,7 @@ impl Fingerprint {
         })
     }
     fn _new_nose_compressed(&self, section: i8, clockwise: bool) -> Box<Arc> {
+        let section = section as i8 * 2;
         self._new_nose(
             self._compute_nosed_angle(section, clockwise),
             self._inner_circle_radius + self._sections_height[section as usize] as f64 * 50.,
@@ -383,7 +390,7 @@ impl Fingerprint {
             self._nose_size * nose_mysterious_factor / turn_1_start_radius
         };
         let turn_1_start_angle = (section_1 - angle_change) as f64
-            * (2. * PI / self._nb_sections as f64)
+            * (2. * PI / (self._nb_sections * 2) as f64)
             + angular_len_nose;
         let turn_1_start_point = (
             turn_1_start_radius * (turn_1_start_angle.cos()),
@@ -392,7 +399,7 @@ impl Fingerprint {
         let turn_1_end_radius = self._inner_circle_radius
             + (self._sections_height[section_1 as usize] as f64 + height_change) * 50.;
         let turn_1_end_angle =
-            (section_1 - angle_change) as f64 * (2. * PI / self._nb_sections as f64);
+            (section_1 - angle_change) as f64 * (2. * PI / (self._nb_sections * 2) as f64);
         let turn_1_end_point = (
             turn_1_end_radius * (turn_1_end_angle.cos()),
             turn_1_end_radius * (turn_1_end_angle.sin()),
@@ -400,7 +407,7 @@ impl Fingerprint {
         let turn_2_start_radius = self._inner_circle_radius
             + (self._sections_height[section_2 as usize] as f64 - height_change) * 50.;
         let turn_2_start_angle =
-            (section_2 + angle_change) as f64 * (2. * PI / self._nb_sections as f64);
+            (section_2 + angle_change) as f64 * (2. * PI / (self._nb_sections * 2) as f64);
         let turn_2_start_point = (
             turn_2_start_radius * (turn_2_start_angle.cos()),
             turn_2_start_radius * (turn_2_start_angle.sin()),
@@ -414,13 +421,13 @@ impl Fingerprint {
         };
 
         let turn_2_end_angle = (section_2 + angle_change) as f64
-            * (2. * PI / self._nb_sections as f64)
+            * (2. * PI / (self._nb_sections * 2) as f64)
             - angular_len_nose;
         let turn_2_end_point = (
             turn_2_end_radius * (turn_2_end_angle.cos()),
             turn_2_end_radius * (turn_2_end_angle.sin()),
         );
-        let end_section_angle = section_2 as f64 * (2. * PI / self._nb_sections as f64);
+        let end_section_angle = section_2 as f64 * (2. * PI / (self._nb_sections * 2) as f64);
         let end_section_point = (
             turn_2_end_radius * (end_section_angle.cos()),
             turn_2_end_radius * (end_section_angle.sin()),
