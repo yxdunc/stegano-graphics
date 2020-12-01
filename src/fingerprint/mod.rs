@@ -264,19 +264,30 @@ impl Fingerprint {
     }
     fn _generate_rays(&self) -> Vec<Box<dyn Element>> {
         let mut result: Vec<Box<dyn Element>> = Vec::new();
-        for i in 0..self._nb_sections {
-            let angle = i as f64 * (2. * PI / self._nb_sections as f64);
+        for i in 0..self._nb_sections * 2 {
+            let angle = i as f64 * (2. * PI / (self._nb_sections as f64 * 2.));
+            // let shifted_angle = (0.5 + i as f64) * (2. * PI / (self._nb_sections as f64 * 2.));
             let point_2 = (
                 angle.cos() * (self._max_radius - 25.),
                 angle.sin() * (self._max_radius - 25.),
+            );
+            let height_pos = (
+                angle.cos()
+                    * (self._sections_height[i as usize] as f64 * self._nose_size
+                        + self._inner_circle_radius),
+                angle.sin()
+                    * (self._sections_height[i as usize] as f64 * self._nose_size
+                        + self._inner_circle_radius),
             );
             let letter_pos = (
                 angle.cos() * (self._max_radius - 10.),
                 angle.sin() * (self._max_radius - 10.),
             );
-            result.push(Box::new(
-                Text::new(CHAR_LIST[i as usize].to_string()).set_pos(letter_pos),
-            ));
+            if i % 2 == 0 {
+                result.push(Box::new(
+                    Text::new(CHAR_LIST[(i / 2) as usize].to_string()).set_pos(letter_pos),
+                ));
+            }
             result.push(Box::new(
                 Line::new()
                     .set_point_1((0.0, 0.0))
@@ -284,12 +295,19 @@ impl Fingerprint {
                     .set_stroke_width(Size::from_length(5.))
                     .set_stroke(Paint::from_color(Color::from_name(ColorName::Olive))),
             ));
+            result.push(Box::new(
+                Line::new()
+                    .set_point_1((0.0, 0.0))
+                    .set_point_2(height_pos)
+                    .set_stroke_width(Size::from_length(10.))
+                    .set_stroke(Paint::from_color(Color::from_name(ColorName::Aqua))),
+            ));
         }
         result
     }
     pub fn render(&mut self) -> String {
         let mut path = Path::new();
-        let mut current_section: i8 = 1;
+        let mut current_section: i8 = 0;
         let mut clockwise = true;
         let mut current_dist_to_center = self._inner_circle_radius;
         self._encoded_text = simple_latin_symbols::encode(&self._text);

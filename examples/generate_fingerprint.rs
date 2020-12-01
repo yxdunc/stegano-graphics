@@ -1,7 +1,7 @@
 use stegs::fingerprint::Fingerprint;
 
 fn main() {
-    let mut fp = Fingerprint::new().set_text("roa");
+    let mut fp = Fingerprint::new().set_text("robososazqzq");
     // println!("{}", fp.render_circular());
     println!("{}", fp.render());
 }
