@@ -186,6 +186,7 @@ impl Fingerprint {
                 && i < sections.len() - 1
             {
                 eprintln!("-----> entering height transition");
+                compressed_arc.pop();
                 compressed_arc
                     .append(&mut self._new_height_transition(section_0, section_1, clockwise));
 
@@ -196,8 +197,8 @@ impl Fingerprint {
                         - self._sections_height[section_0 as usize])
                         .abs();
                     let prev_section = if section_0 - 1 < 0 { 0 } else { section_0 - 1 };
-                // self._sections_height[prev_section as usize] += 1;
-                // height_increment_to_apply_after_arc[section_1 as usize] = 1;
+                    // self._sections_height[prev_section as usize] += 1;
+                    height_increment_to_apply_after_arc[section_0 as usize] = height_difference;
                 } else {
                     // going down
                     let height_difference = (self._sections_height[section_1 as usize]
@@ -209,7 +210,7 @@ impl Fingerprint {
                         (section_1 + 1) as usize
                     };
                     // self._sections_height[next_section] += 1;
-                    height_increment_to_apply_after_arc[next_section as usize] = height_difference;
+                    // height_increment_to_apply_after_arc[next_section as usize] = height_difference;
                     height_increment_to_apply_after_arc[section_1 as usize] = height_difference;
                 }
             } else if i < sections.len() - 1 {
@@ -429,13 +430,13 @@ impl Fingerprint {
             -0.5 //
         };
         let angle_change = if is_raising && clockwise {
-            -1. //
+            0.
         } else if !is_raising && !clockwise {
-            1. //
+            1.
         } else if is_raising && !clockwise {
-            1. //
+            0.
         } else {
-            -1. //
+            -1.
         };
         let sweep = if is_raising && clockwise {
             false //
@@ -470,7 +471,7 @@ impl Fingerprint {
         );
         let turn_2_start_radius = self._inner_circle_radius
             + (self._sections_height[section_1 as usize] as f64 - height_change) * self._nose_size;
-        let turn_2_start_angle = (section_1) as f64 * (2. * PI / (self._nb_sections * 2) as f64);
+        let turn_2_start_angle = turn_1_end_angle;
         let turn_2_start_point = (
             turn_2_start_radius * (turn_2_start_angle.cos()),
             turn_2_start_radius * (turn_2_start_angle.sin()),
@@ -483,8 +484,7 @@ impl Fingerprint {
             self._nose_size / 2. / turn_1_end_radius
         };
 
-        let turn_2_end_angle =
-            (section_1) as f64 * (2. * PI / (self._nb_sections * 2) as f64) - angular_len_nose;
+        let turn_2_end_angle = turn_2_start_angle - angular_len_nose;
         let turn_2_end_point = (
             turn_2_end_radius * (turn_2_end_angle.cos()),
             turn_2_end_radius * (turn_2_end_angle.sin()),
