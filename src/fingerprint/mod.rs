@@ -451,6 +451,9 @@ impl Fingerprint {
         // TODO
         20.
     }
+    fn _compute_nose_angular_size(&self, distance_to_center: f64) -> f64 {
+        self._nose_size / 2. / distance_to_center
+    }
     fn _new_height_transition(
         &self,
         section_0: i8,
@@ -462,39 +465,28 @@ impl Fingerprint {
         let section_0 = section_0 as f64;
         let section_1 = section_1 as f64;
 
-        let height_change = if is_raising && clockwise {
-            0.5 //
+        let sweep = is_raising ^ clockwise;
+        let height_change;
+        let angle_change;
+        if is_raising && clockwise {
+            height_change = 0.5;
+            angle_change = 0.;
         } else if !is_raising && !clockwise {
-            -0.5 //
+            height_change = -0.5;
+            angle_change = 1.;
         } else if is_raising && !clockwise {
-            0.5 //
+            height_change = 0.5;
+            angle_change = 0.;
         } else {
-            -0.5 //
-        };
-        let angle_change = if is_raising && clockwise {
-            0.
-        } else if !is_raising && !clockwise {
-            1.
-        } else if is_raising && !clockwise {
-            0.
-        } else {
-            -1.
-        };
-        let sweep = if is_raising && clockwise {
-            false //
-        } else if !is_raising && !clockwise {
-            false //
-        } else if is_raising && !clockwise {
-            true //
-        } else {
-            true //
+            height_change = -0.5;
+            angle_change = -1.;
         };
         let turn_1_start_radius = self._inner_circle_radius
             + (self._sections_height[section_0 as usize] as f64) * self._nose_size;
         let angular_len_nose = if clockwise {
-            self._nose_size / 2. / turn_1_start_radius * -1.
+            self._compute_nose_angular_size(turn_1_start_radius) * -1.
         } else {
-            self._nose_size / 2. / turn_1_start_radius
+            self._compute_nose_angular_size(turn_1_start_radius)
         };
         let turn_1_start_angle = (section_0 - angle_change) as f64
             * (2. * PI / (self._nb_sections * 2) as f64)
