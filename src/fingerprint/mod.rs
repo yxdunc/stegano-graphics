@@ -158,10 +158,13 @@ impl Fingerprint {
         let mut height_increment_to_apply_after_arc: Vec<i32> =
             vec![0; self._nb_sections as usize * 2];
         eprintln!("## sections {:?}", sections);
+        let mut touchy_nose = false;
         let mut i = 0;
         while i < sections.len() {
             let section_0 = sections[i];
             let section_1 = self._change_section(section_0, 1, clockwise);
+            let section_2 = self._change_section(section_1, 1, clockwise);
+            let section_3 = self._change_section(section_2, 1, clockwise);
             let radius = self._inner_circle_radius
                 + self._sections_height[section_0 as usize] as f64 * self._nose_size;
             let mut angle_1 = Self::_angle_from_section(section_0, self._nb_sections as i32 * 2);
@@ -185,8 +188,6 @@ impl Fingerprint {
                 compressed_arc.pop();
                 let section_minus_1 = self._change_section(section_0, -1, clockwise);
                 let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
-                let section_2 = self._change_section(section_1, 1, clockwise);
-                let section_3 = self._change_section(section_2, 1, clockwise);
                 eprintln!(
                     "{}, {}, ({}), {}, {}, {}",
                     section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
@@ -196,8 +197,18 @@ impl Fingerprint {
                         == self._sections_height[section_2 as usize]
                 {
                     eprintln!("---># difference before nose");
-                // compressed_arc
-                //     .append(&mut self._new_height_transition(section_0, section_1, clockwise));
+                    touchy_nose = true;
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (radius, radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: clockwise,
+                        point: end_point,
+                        coordinate_type: Absolute,
+                    }));
+                // compressed_arc.append(
+                //     &mut self._new_height_transition(section_0, section_1, clockwise, true),
+                // );
                 } else if i == sections.len() - 2
                     && self._sections_height[section_1 as usize]
                         != self._sections_height[section_2 as usize]
@@ -228,8 +239,9 @@ impl Fingerprint {
                     eprintln!("---># getting out of pit");
                 // i += 1;
                 } else {
-                    compressed_arc
-                        .append(&mut self._new_height_transition(section_0, section_1, clockwise));
+                    compressed_arc.append(
+                        &mut self._new_height_transition(section_0, section_1, clockwise, false),
+                    );
                 }
                 if self._sections_height[section_0 as usize]
                     < self._sections_height[section_1 as usize]
@@ -264,7 +276,9 @@ impl Fingerprint {
                     coordinate_type: Absolute,
                 }));
             }
-            self._sections_height[section_0 as usize] += 1;
+            if !touchy_nose {
+                self._sections_height[section_0 as usize] += 1;
+            }
             i += 1;
         }
         // self._sections_height[sections[sections.len() - 1 as usize] as usize] += 1;
@@ -273,6 +287,7 @@ impl Fingerprint {
             "## sections_height_to_add {:?}",
             height_increment_to_apply_after_arc
         );
+        compressed_arc.push(self._new_nose_compressed(section_end, clockwise, touchy_nose));
         self._sections_height = self
             ._sections_height
             .clone()
@@ -296,12 +311,16 @@ impl Fingerprint {
             coordinate_type: Absolute,
         })
     }
-    fn _new_nose_compressed(&self, section: i8, clockwise: bool) -> Box<Arc> {
+    fn _new_nose_compressed(&self, section: i8, clockwise: bool, is_touching: bool) -> Box<Arc> {
         let section = section as i8 * 2;
+        let section_height = if is_touching {
+            self._sections_height[section as usize] - 1
+        } else {
+            self._sections_height[section as usize]
+        } as f64;
         self._new_nose(
             self._compute_nosed_angle(section, clockwise),
-            self._inner_circle_radius
-                + self._sections_height[section as usize] as f64 * self._nose_size,
+            self._inner_circle_radius + section_height * self._nose_size,
             clockwise,
         )
     }
@@ -378,7 +397,6 @@ impl Fingerprint {
             let compressed_arc =
                 self._new_compressed_arc(previous_section, current_section, clockwise);
             path = path.add_commands(compressed_arc);
-            path = path.add_command(self._new_nose_compressed(current_section, clockwise));
             clockwise = !clockwise;
         }
 
@@ -459,6 +477,7 @@ impl Fingerprint {
         section_0: i8,
         section_1: i8,
         clockwise: bool,
+        include_nose: bool,
     ) -> Vec<Box<dyn Command>> {
         let is_raising =
             self._sections_height[section_0 as usize] < self._sections_height[section_1 as usize];
@@ -513,9 +532,9 @@ impl Fingerprint {
         let turn_2_end_radius = self._inner_circle_radius
             + (self._sections_height[section_1 as usize] as f64) * self._nose_size;
         let angular_len_nose = if clockwise {
-            self._nose_size / 2. / turn_1_end_radius * -1.
+            self._nose_size / 2. / turn_2_end_radius * -1.
         } else {
-            self._nose_size / 2. / turn_1_end_radius
+            self._nose_size / 2. / turn_2_end_radius
         };
 
         let turn_2_end_angle = turn_2_start_angle - angular_len_nose;
@@ -576,6 +595,9 @@ impl Fingerprint {
             }),
         ];
         result
+    }
+    fn _stroke_angular_size(&self, distance_to_center: f64) -> f64 {
+        self._compute_stroke_width() / 2. / distance_to_center
     }
 }
 
