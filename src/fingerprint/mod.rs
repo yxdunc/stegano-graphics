@@ -136,18 +136,13 @@ impl Fingerprint {
         section as f64 * (2. * PI / nb_sections)
     }
     fn _change_section(&self, current_section: i8, delta: i8, clockwise: bool) -> i8 {
-        if (clockwise && delta.is_positive()) || (!clockwise && delta.is_negative()) {
-            if current_section + delta >= self._sections_height.len() as i8 {
-                0
-            } else {
-                (current_section + delta)
-            }
+        let delta: i8 = if !clockwise { -delta } else { delta };
+        if current_section + delta < 0 {
+            self._sections_height.len() as i8 - 1
+        } else if current_section + delta >= self._sections_height.len() as i8 {
+            0
         } else {
-            if current_section - delta < 0 {
-                self._sections_height.len() as i8 - 1
-            } else {
-                (current_section - delta)
-            }
+            current_section + delta
         }
     }
     fn _new_compressed_arc(
@@ -163,7 +158,8 @@ impl Fingerprint {
         let mut height_increment_to_apply_after_arc: Vec<i32> =
             vec![0; self._nb_sections as usize * 2];
         eprintln!("## sections {:?}", sections);
-        for i in 0..sections.len() {
+        let mut i = 0;
+        while i < sections.len() {
             let section_0 = sections[i];
             let section_1 = self._change_section(section_0, 1, clockwise);
             let radius = self._inner_circle_radius
@@ -187,9 +183,54 @@ impl Fingerprint {
             {
                 eprintln!("-----> entering height transition");
                 compressed_arc.pop();
-                compressed_arc
-                    .append(&mut self._new_height_transition(section_0, section_1, clockwise));
-
+                let section_minus_1 = self._change_section(section_0, -1, clockwise);
+                let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
+                let section_2 = self._change_section(section_1, 1, clockwise);
+                let section_3 = self._change_section(section_2, 1, clockwise);
+                eprintln!(
+                    "{}, {}, ({}), {}, {}, {}",
+                    section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
+                );
+                if i == sections.len() - 2
+                    && self._sections_height[section_1 as usize]
+                        == self._sections_height[section_2 as usize]
+                {
+                    eprintln!("---># difference before nose");
+                // compressed_arc
+                //     .append(&mut self._new_height_transition(section_0, section_1, clockwise));
+                } else if i == sections.len() - 2
+                    && self._sections_height[section_1 as usize]
+                        != self._sections_height[section_2 as usize]
+                {
+                    eprintln!("---># tight (1) difference before nose");
+                } else if i < sections.len() - 2
+                    && self._sections_height[section_1 as usize]
+                        != self._sections_height[section_2 as usize]
+                {
+                    eprintln!("---># double difference");
+                } else if i < sections.len() - 2
+                    && self._sections_height[section_0 as usize]
+                        > self._sections_height[section_1 as usize]
+                    && self._sections_height[section_1 as usize]
+                        == self._sections_height[section_2 as usize]
+                    && self._sections_height[section_2 as usize]
+                        < self._sections_height[section_3 as usize]
+                {
+                    eprintln!("---># diving in pit");
+                // i += 1;
+                } else if self._sections_height[section_minus_2 as usize]
+                    > self._sections_height[section_minus_1 as usize]
+                    && self._sections_height[section_minus_1 as usize] - 1
+                        == self._sections_height[section_0 as usize]
+                    && self._sections_height[section_0 as usize]
+                        < self._sections_height[section_1 as usize]
+                {
+                    eprintln!("---># getting out of pit");
+                // i += 1;
+                } else {
+                    compressed_arc
+                        .append(&mut self._new_height_transition(section_0, section_1, clockwise));
+                }
                 if self._sections_height[section_0 as usize]
                     < self._sections_height[section_1 as usize]
                 {
@@ -224,6 +265,7 @@ impl Fingerprint {
                 }));
             }
             self._sections_height[section_0 as usize] += 1;
+            i += 1;
         }
         // self._sections_height[sections[sections.len() - 1 as usize] as usize] += 1;
         eprintln!("## sections_heights {:?}", self._sections_height);
