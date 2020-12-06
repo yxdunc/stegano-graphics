@@ -7,7 +7,7 @@ use svg_composer::element::attributes::{Color, ColorName, Paint, Size, StrokeLin
 use svg_composer::element::circle::Circle;
 use svg_composer::element::line::Line;
 use svg_composer::element::path::command::CoordinateType::Absolute;
-use svg_composer::element::path::command::{Arc, LineTo, LineToOption, MoveTo};
+use svg_composer::element::path::command::{Arc, CubicBezierCurve, LineTo, LineToOption, MoveTo};
 use svg_composer::element::path::Command;
 use svg_composer::element::rect::Rectangle;
 use svg_composer::element::text::Text;
@@ -121,8 +121,7 @@ impl Fingerprint {
     fn _compute_nosed_angle(&self, section: i8, clockwise: bool) -> f64 {
         let distance_to_center = self._inner_circle_radius
             + self._sections_height[section as usize] as f64 * self._nose_size;
-        let angular_len_nose =
-            (self._nose_size / 2. + self._compute_stroke_width() / 2.) / distance_to_center;
+        let angular_len_nose = (self._nose_size / 2.) / distance_to_center;
         let section_angle = Self::_angle_from_section(section, self._nb_sections as i32 * 2);
 
         if clockwise {
@@ -190,29 +189,70 @@ impl Fingerprint {
                 compressed_arc.pop();
                 let section_minus_1 = self._change_section(section_0, -1, clockwise);
                 let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
+                let section_minus_3 = self._change_section(section_minus_2, -1, clockwise);
                 eprintln!(
                     "{}, {}, ({}), {}, {}, {}",
                     section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
                 );
+                eprintln!(
+                    "{}, {}, ({}), {}, {}, {}",
+                    self._sections_height[section_minus_2 as usize],
+                    self._sections_height[section_minus_1 as usize],
+                    self._sections_height[section_0 as usize],
+                    self._sections_height[section_1 as usize],
+                    self._sections_height[section_2 as usize],
+                    self._sections_height[section_3 as usize],
+                );
                 if i == sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
-                    && self._sections_height[section_1 as usize]
-                        == self._sections_height[section_2 as usize]
+                // && self._sections_height[section_1 as usize]
+                //     == self._sections_height[section_2 as usize]
                 {
                     eprintln!("---># difference before nose");
                     touchy_nose = true;
                     compressed_arc.pop();
+                    let orig_section_height_minus_2 =
+                        self._sections_height[section_minus_2 as usize];
+                    let orig_section_height_minus_3 =
+                        self._sections_height[section_minus_3 as usize];
                     self._sections_height[section_minus_1 as usize] -= 1;
                     self._sections_height[section_0 as usize] =
                         self._sections_height[section_1 as usize];
 
-                    compressed_arc.append(&mut self._new_height_transition(
-                        section_minus_1,
-                        section_0,
-                        clockwise,
-                        false,
-                    ));
+                    let mut height_transition =
+                        self._new_height_transition(section_minus_1, section_0, clockwise, false);
+                    if orig_section_height_minus_3 - 1 > orig_section_height_minus_2 {
+                        eprintln!("down before up to nose");
+                        compressed_arc.pop();
+                        compressed_arc.pop();
+                        height_transition.remove(0);
+                        height_transition.remove(0);
+                        let section_angle_delta =
+                            Self::_angle_from_section(1, self._nb_sections as i32 * 2);
+                        let tmp_radius = Self::_compute_size_from_angular(
+                            section_angle_delta / 2.,
+                            self._distance_to_center(section_minus_1),
+                        );
+                        let tmp_angle = Self::_angle_from_section(
+                            section_minus_1,
+                            self._nb_sections as i32 * 2,
+                        );
+                        let tmp_start_point = (
+                            (radius + self._nose_size / 2.) * (tmp_angle.cos()),
+                            (radius + self._nose_size / 2.) * (tmp_angle.sin()),
+                        );
+                        compressed_arc.push(Box::new(Arc {
+                            radius: (tmp_radius, tmp_radius),
+                            x_axis_rotation: 0.0,
+                            large_arc_flag: false,
+                            sweep_flag: !clockwise,
+                            point: tmp_start_point,
+                            coordinate_type: Absolute,
+                        }));
+                    }
+
+                    compressed_arc.append(&mut height_transition);
                     self._sections_height[section_minus_1 as usize] =
                         self._sections_height[section_1 as usize] + 1;
                     self._sections_height[section_0 as usize] += 1;
@@ -238,6 +278,20 @@ impl Fingerprint {
                         clockwise,
                         !touchy_nose,
                     ));
+                } else if i == sections.len() - 3
+                    && self._sections_height[section_0 as usize]
+                        < self._sections_height[section_1 as usize]
+                {
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (radius, radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: clockwise,
+                        point: end_point,
+                        coordinate_type: Absolute,
+                    }));
+                    self._sections_height[section_1 as usize] =
+                        self._sections_height[section_0 as usize];
                 } else if i < sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
@@ -264,6 +318,9 @@ impl Fingerprint {
                         < self._sections_height[section_3 as usize]
                 {
                     eprintln!("---># diving in pit");
+                    compressed_arc.append(
+                        &mut self._new_height_transition(section_0, section_1, clockwise, false),
+                    );
                 // i += 1;
                 } else if self._sections_height[section_minus_2 as usize]
                     > self._sections_height[section_minus_1 as usize]
@@ -272,6 +329,31 @@ impl Fingerprint {
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
                 {
+                    let section_angle_delta =
+                        Self::_angle_from_section(1, self._nb_sections as i32 * 2);
+                    let tmp_radius = Self::_compute_size_from_angular(
+                        section_angle_delta / 2.,
+                        self._distance_to_center(section_0),
+                    );
+                    let tmp_start_point = (
+                        (radius + self._nose_size / 2.) * (angle_1.cos()),
+                        (radius + self._nose_size / 2.) * (angle_1.sin()),
+                    );
+                    compressed_arc.pop();
+                    compressed_arc.pop();
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (tmp_radius, tmp_radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: !clockwise,
+                        point: tmp_start_point,
+                        coordinate_type: Absolute,
+                    }));
+                    let mut height_transition =
+                        self._new_height_transition(section_0, section_1, clockwise, false);
+                    height_transition.remove(0);
+                    height_transition.remove(0);
+                    compressed_arc.append(&mut height_transition);
                     eprintln!("---># getting out of pit");
                 // i += 1;
                 } else {
@@ -516,6 +598,9 @@ impl Fingerprint {
     }
     fn _compute_nose_angular_size(&self, distance_to_center: f64) -> f64 {
         self._nose_size / 2. / distance_to_center
+    }
+    fn _compute_size_from_angular(angle_delta: f64, distance_to_center: f64) -> f64 {
+        angle_delta * distance_to_center
     }
     fn _new_height_transition(
         &self,
