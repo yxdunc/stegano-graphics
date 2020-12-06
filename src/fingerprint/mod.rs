@@ -201,12 +201,9 @@ impl Fingerprint {
                         == self._sections_height[section_2 as usize]
                 {
                     eprintln!("---># difference before nose");
-
+                    touchy_nose = true;
                     compressed_arc.pop();
                     self._sections_height[section_minus_1 as usize] -= 1;
-                    self._sections_height[section_0 as usize] += 1;
-                    // self._sections_height[section_1 as usize] -= 1;
-
                     self._sections_height[section_0 as usize] =
                         self._sections_height[section_1 as usize];
 
@@ -217,38 +214,10 @@ impl Fingerprint {
                         false,
                     ));
                     self._sections_height[section_minus_1 as usize] =
-                        self._sections_height[section_1 as usize];
-                    // working touchy nose
-                    touchy_nose = true;
-                    // compressed_arc.push(Box::new(Arc {
-                    //     radius: (radius, radius),
-                    //     x_axis_rotation: 0.0,
-                    //     large_arc_flag: false,
-                    //     sweep_flag: clockwise,
-                    //     point: end_point,
-                    //     coordinate_type: Absolute,
-                    // }));
-                    // self._sections_height[section_0 as usize] += 1;
-                    // self._sections_height[section_1 as usize] -= 1;
-                    // i += 5;
-                    // compressed_arc.push(Box::new(Arc {
-                    //     radius: (radius, radius),
-                    //     x_axis_rotation: 0.0,
-                    //     large_arc_flag: false,
-                    //     sweep_flag: clockwise,
-                    //     point: end_point,
-                    //     coordinate_type: Absolute,
-                    // }));
-                    self._sections_height[section_minus_1 as usize] += 1;
-                    // self._sections_height[section_minus_1 as usize] += 1;
+                        self._sections_height[section_1 as usize] + 1;
                     self._sections_height[section_0 as usize] += 1;
-                    // self._sections_height[section_1 as usize] += 1;
                     let tmp_angle_2 = self._compute_nosed_angle(section_1, clockwise);
                     let tmp_radius = self._distance_to_center(section_0);
-                    let tmp_end_point: (f64, f64) = (
-                        tmp_radius * (tmp_angle_2.cos()),
-                        tmp_radius * (tmp_angle_2.sin()),
-                    );
                     let tmp_start_nose_point: (f64, f64) = (
                         (tmp_radius - self._nose_size) * (tmp_angle_2.cos()),
                         (tmp_radius - self._nose_size) * (tmp_angle_2.sin()),
@@ -269,22 +238,6 @@ impl Fingerprint {
                         clockwise,
                         !touchy_nose,
                     ));
-
-                // self._sections_height[section_1 as usize] -= 1;
-
-                // compressed_arc.append(
-                //     &mut self._new_height_transition(section_0, section_1, clockwise, true),
-                // );
-                // } else if i == sections.len() - 2
-                //     && self._sections_height[section_1 as usize]
-                //         != self._sections_height[section_2 as usize]
-                // {
-                // eprintln!("---># tight (1) difference before nose");
-                // } else if i < sections.len() - 2
-                //     && self._sections_height[section_1 as usize]
-                //         != self._sections_height[section_2 as usize]
-                // {
-                //     eprintln!("---># double difference");
                 } else if i < sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
