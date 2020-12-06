@@ -145,6 +145,9 @@ impl Fingerprint {
             current_section + delta
         }
     }
+    fn _distance_to_center(&self, section: i8) -> f64 {
+        self._inner_circle_radius + self._sections_height[section as usize] as f64 * self._nose_size
+    }
     fn _new_compressed_arc(
         &mut self,
         section_start: i8,
@@ -165,8 +168,7 @@ impl Fingerprint {
             let section_1 = self._change_section(section_0, 1, clockwise);
             let section_2 = self._change_section(section_1, 1, clockwise);
             let section_3 = self._change_section(section_2, 1, clockwise);
-            let radius = self._inner_circle_radius
-                + self._sections_height[section_0 as usize] as f64 * self._nose_size;
+            let radius = self._distance_to_center(section_0);
             let mut angle_1 = Self::_angle_from_section(section_0, self._nb_sections as i32 * 2);
             let mut angle_2 = Self::_angle_from_section(section_1, self._nb_sections as i32 * 2);
             if i == sections.len() - 2 {
@@ -202,18 +204,20 @@ impl Fingerprint {
 
                     compressed_arc.pop();
                     self._sections_height[section_minus_1 as usize] -= 1;
-                    self._sections_height[section_0 as usize] += 2;
+                    self._sections_height[section_0 as usize] += 1;
+                    // self._sections_height[section_1 as usize] -= 1;
+
+                    self._sections_height[section_0 as usize] =
+                        self._sections_height[section_1 as usize];
+
                     compressed_arc.append(&mut self._new_height_transition(
                         section_minus_1,
                         section_0,
                         clockwise,
                         false,
                     ));
-                    // TODO increment by height difference
-                    self._sections_height[section_minus_1 as usize] += 1;
-                    self._sections_height[section_minus_1 as usize] += 1;
-                    self._sections_height[section_minus_1 as usize] += 1;
-                    self._sections_height[section_0 as usize] += 0;
+                    self._sections_height[section_minus_1 as usize] =
+                        self._sections_height[section_1 as usize];
                     // working touchy nose
                     touchy_nose = true;
                     // compressed_arc.push(Box::new(Arc {
@@ -226,20 +230,46 @@ impl Fingerprint {
                     // }));
                     // self._sections_height[section_0 as usize] += 1;
                     // self._sections_height[section_1 as usize] -= 1;
-                    i -= 1;
-                // compressed_arc.push(Box::new(Arc {
-                //     radius: (radius, radius),
-                //     x_axis_rotation: 0.0,
-                //     large_arc_flag: false,
-                //     sweep_flag: clockwise,
-                //     point: end_point,
-                //     coordinate_type: Absolute,
-                // }));
-                // compressed_arc.push(self._new_nose_compressed(
-                //     section_end,
-                //     clockwise,
-                //     touchy_nose,
-                // ));
+                    // i += 5;
+                    // compressed_arc.push(Box::new(Arc {
+                    //     radius: (radius, radius),
+                    //     x_axis_rotation: 0.0,
+                    //     large_arc_flag: false,
+                    //     sweep_flag: clockwise,
+                    //     point: end_point,
+                    //     coordinate_type: Absolute,
+                    // }));
+                    self._sections_height[section_minus_1 as usize] += 1;
+                    // self._sections_height[section_minus_1 as usize] += 1;
+                    self._sections_height[section_0 as usize] += 1;
+                    // self._sections_height[section_1 as usize] += 1;
+                    let tmp_angle_2 = self._compute_nosed_angle(section_1, clockwise);
+                    let tmp_radius = self._distance_to_center(section_0);
+                    let tmp_end_point: (f64, f64) = (
+                        tmp_radius * (tmp_angle_2.cos()),
+                        tmp_radius * (tmp_angle_2.sin()),
+                    );
+                    let tmp_start_nose_point: (f64, f64) = (
+                        (tmp_radius - self._nose_size) * (tmp_angle_2.cos()),
+                        (tmp_radius - self._nose_size) * (tmp_angle_2.sin()),
+                    );
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (
+                            self._distance_to_center(section_0) - self._nose_size,
+                            self._distance_to_center(section_0) - self._nose_size,
+                        ),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: clockwise,
+                        point: tmp_start_nose_point,
+                        coordinate_type: Absolute,
+                    }));
+                    compressed_arc.push(self._new_nose_compressed(
+                        section_end,
+                        clockwise,
+                        !touchy_nose,
+                    ));
+
                 // self._sections_height[section_1 as usize] -= 1;
 
                 // compressed_arc.append(
