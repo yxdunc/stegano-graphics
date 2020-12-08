@@ -108,7 +108,7 @@ impl Fingerprint {
                 section_list = (section_2..section_1 + 1).rev().collect::<Vec<i8>>();
             } else {
                 section_list = [
-                    (1..section_1 + 1).rev().collect::<Vec<i8>>(),
+                    (0..section_1 + 1).rev().collect::<Vec<i8>>(),
                     (section_2..self._nb_sections * 2)
                         .rev()
                         .collect::<Vec<i8>>(),
