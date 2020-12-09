@@ -203,13 +203,20 @@ impl Fingerprint {
                     self._sections_height[section_2 as usize],
                     self._sections_height[section_3 as usize],
                 );
-                if i == sections.len() - 2
+                if i == sections.len() - 3
+                    && self._sections_height[section_0 as usize]
+                        > self._sections_height[section_1 as usize]
+                {
+                    eprintln!("---># lowering before nose");
+                    touchy_nose = true;
+                    compressed_arc.append(
+                        &mut self._new_height_transition(section_0, section_1, clockwise, false),
+                    );
+                } else if i == sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
-                // && self._sections_height[section_1 as usize]
-                //     == self._sections_height[section_2 as usize]
                 {
-                    eprintln!("---># difference before nose");
+                    eprintln!("---># raise before nose");
                     touchy_nose = true;
                     compressed_arc.pop();
                     let orig_section_height_minus_2 =
@@ -273,11 +280,9 @@ impl Fingerprint {
                         point: tmp_start_nose_point,
                         coordinate_type: Absolute,
                     }));
-                    compressed_arc.push(self._new_nose_compressed(
-                        section_end,
-                        clockwise,
-                        !touchy_nose,
-                    ));
+                    self._sections_height[section_1 as usize] += 1;
+                    eprintln!("===> section_1 {} section_end {}", section_1, section_end);
+                    compressed_arc.push(self._new_nose_compressed(section_end, clockwise, false));
                 } else if i == sections.len() - 3
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
@@ -355,7 +360,6 @@ impl Fingerprint {
                     height_transition.remove(0);
                     compressed_arc.append(&mut height_transition);
                     eprintln!("---># getting out of pit");
-                // i += 1;
                 } else {
                     compressed_arc.append(
                         &mut self._new_height_transition(section_0, section_1, clockwise, false),
@@ -397,10 +401,11 @@ impl Fingerprint {
             }
             if !touchy_nose {
                 self._sections_height[section_0 as usize] += 1;
-            // touchy_nose == false;
-            } else {
-                touchy_nose = false;
             }
+            // touchy_nose == false;
+            // } else {
+            //     touchy_nose = false;
+            // }
             i += 1;
         }
         // self._sections_height[sections[sections.len() - 1 as usize] as usize] += 1;
@@ -411,17 +416,16 @@ impl Fingerprint {
         );
         if !touchy_nose {
             compressed_arc.push(self._new_nose_compressed(section_end, clockwise, touchy_nose));
-
-            self._sections_height = self
-                ._sections_height
-                .clone()
-                .iter()
-                .zip(height_increment_to_apply_after_arc.iter())
-                .map((|(&a, &b)| a + b))
-                .collect::<Vec<i32>>();
         } else {
             eprintln!("non touchy")
         }
+        self._sections_height = self
+            ._sections_height
+            .clone()
+            .iter()
+            .zip(height_increment_to_apply_after_arc.iter())
+            .map((|(&a, &b)| a + b))
+            .collect::<Vec<i32>>();
         eprintln!("### sections_heights {:?}", self._sections_height);
 
         compressed_arc
