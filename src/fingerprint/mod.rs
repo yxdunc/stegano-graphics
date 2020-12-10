@@ -289,6 +289,57 @@ impl Fingerprint {
                     compressed_arc.append(&mut height_transition);
                     self._sections_height[section_2 as usize] =
                         self._sections_height[section_0 as usize] + 1;
+                } else if i == sections.len() - 4
+                    && self._sections_height[section_0 as usize]
+                        > self._sections_height[section_1 as usize]
+                    && self._sections_height[section_1 as usize] < 4
+                {
+                    eprintln!("---># lowering in close to center 3 before nose");
+                    i += 2;
+                    touchy_nose = true;
+                    let section_angle_delta =
+                        Self::_angle_from_section(1, self._nb_sections as i32 * 2);
+                    let radius_0 = self._distance_to_center(section_1);
+                    let tmp_radius = Self::_compute_size_from_angular(
+                        section_angle_delta / 2.,
+                        self._distance_to_center(section_1),
+                    );
+                    self._sections_height[section_1 as usize] =
+                        self._sections_height[section_0 as usize];
+                    compressed_arc.append(
+                        &mut self._new_height_transition(section_1, section_2, clockwise, false),
+                    );
+                    let angle_3 =
+                        Self::_angle_from_section(section_3, self._nb_sections as i32 * 2);
+
+                    let tmp_start_point = (
+                        (radius_0 + self._nose_size / 2.) * (angle_3.cos()),
+                        (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
+                    );
+                    compressed_arc.pop();
+                    compressed_arc.pop();
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (tmp_radius, tmp_radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: !clockwise,
+                        point: tmp_start_point,
+                        coordinate_type: Absolute,
+                    }));
+                    self._sections_height[section_0 as usize] += 1;
+                    self._sections_height[section_2 as usize] =
+                        self._sections_height[section_0 as usize];
+                    let mut height_transition =
+                        self._new_height_transition(section_3, section_2, !clockwise, false);
+                    height_transition.remove(0);
+                    height_transition.remove(0);
+                    compressed_arc.append(&mut height_transition);
+                    self._sections_height[section_3 as usize] =
+                        self._sections_height[section_0 as usize];
+                    self._sections_height[section_2 as usize] =
+                        self._sections_height[section_0 as usize];
+                    self._sections_height[section_1 as usize] =
+                        self._sections_height[section_0 as usize];
                 } else if i == sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
