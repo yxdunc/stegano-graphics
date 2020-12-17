@@ -1,6 +1,7 @@
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
 use std::borrow::BorrowMut;
+use std::cmp::min;
 use std::f64::consts::PI;
 use std::panic::resume_unwind;
 use svg_composer::element::attributes::{Color, ColorName, Paint, Size, StrokeLineCap};
@@ -50,6 +51,101 @@ impl Fingerprint {
     pub fn set_text(mut self, text: &str) -> Self {
         self._text = text.to_string();
         self
+    }
+    pub fn render(&mut self) -> String {
+        let mut path = Path::new();
+        let mut current_section: i8 = 0;
+        let mut clockwise = true;
+        let mut current_dist_to_center = self._inner_circle_radius;
+        self._encoded_text = simple_latin_symbols::encode(&self._text);
+
+        path = path
+            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
+            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
+            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
+            .set_stroke_linecap(StrokeLineCap::Round)
+            .add_commands(vec![Box::new(MoveTo {
+                point: (
+                    (0.5 * (2. * PI / self._nb_sections as f64)).cos() * current_dist_to_center,
+                    (0.5 as f64 * (2. * PI / self._nb_sections as f64)).sin()
+                        * current_dist_to_center,
+                ),
+                coordinate_type: Absolute,
+            })]);
+
+        // let last_section = self._sections_height.len() - 1 as usize;
+        // self._sections_height[last_section] = 1;
+        for current_char in &self._encoded_text.clone() {
+            let previous_section = current_section;
+            current_section = *current_char;
+
+            let compressed_arc =
+                self._new_compressed_arc(previous_section, current_section, clockwise);
+            path = path.add_commands(compressed_arc);
+            clockwise = !clockwise;
+        }
+
+        let rays: Vec<Box<dyn Element>> = self._generate_rays();
+        self._svg_document.add_element(Box::new(
+            Rectangle::new()
+                .set_pos((-1000., -1000.))
+                .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+                .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+        ));
+        self._svg_document.add_elements(rays);
+        self._svg_document.add_element(Box::new(path));
+        self._svg_document
+            .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
+        self._svg_document.render()
+    }
+    pub fn render_circular(&mut self) -> String {
+        let mut path = Path::new();
+        let mut current_angle: f64 = 0.;
+        let mut clockwise = true;
+        let mut current_dist_to_center = self._inner_circle_radius;
+        self._encoded_text = simple_latin_symbols::encode(&self._text);
+
+        path = path
+            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
+            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
+            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
+            .set_stroke_linecap(StrokeLineCap::Round)
+            .add_commands(vec![Box::new(MoveTo {
+                point: (
+                    current_angle.cos() * current_dist_to_center,
+                    current_angle.sin() * current_dist_to_center,
+                ),
+                coordinate_type: Absolute,
+            })]);
+
+        for current_char in &self._encoded_text {
+            let previous_angle = current_angle;
+            current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
+
+            let arc = Self::_new_arc(
+                previous_angle,
+                current_angle,
+                current_dist_to_center,
+                clockwise,
+            );
+            current_dist_to_center += self._nose_size;
+            let nose = self._new_nose(current_angle, current_dist_to_center, clockwise);
+            path = path.add_commands(vec![arc, nose]);
+            clockwise = !clockwise;
+        }
+
+        self._svg_document
+            .add_elements(vec![
+                Box::new(
+                    Rectangle::new()
+                        .set_pos((-1000., -1000.))
+                        .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+                        .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+                ),
+                Box::new(path),
+                Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
+            ])
+            .render()
     }
     fn _new_arc(angle_1: f64, angle_2: f64, radius: f64, clockwise: bool) -> Box<Arc> {
         let mut arc_angle;
@@ -159,7 +255,11 @@ impl Fingerprint {
 
         let mut height_increment_to_apply_after_arc: Vec<i32> =
             vec![0; self._nb_sections as usize * 2];
-        eprintln!("## sections {:?}", sections);
+        eprintln!(
+            "> fn _new_compressed_arc({}, {}, {})",
+            section_start, section_end, clockwise
+        );
+        eprintln!("-> sections {:?}", sections);
         let mut touchy_nose = false;
         let mut i = 0;
         while i < sections.len() {
@@ -167,6 +267,10 @@ impl Fingerprint {
             let section_1 = self._change_section(section_0, 1, clockwise);
             let section_2 = self._change_section(section_1, 1, clockwise);
             let section_3 = self._change_section(section_2, 1, clockwise);
+            let section_minus_1 = self._change_section(section_0, -1, clockwise);
+            let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
+            let section_minus_3 = self._change_section(section_minus_2, -1, clockwise);
+
             let radius = self._distance_to_center(section_0);
             let mut angle_1 = Self::_angle_from_section(section_0, self._nb_sections as i32 * 2);
             let mut angle_2 = Self::_angle_from_section(section_1, self._nb_sections as i32 * 2);
@@ -175,27 +279,16 @@ impl Fingerprint {
             }
             let starting_point: (f64, f64) = (radius * (angle_1.cos()), radius * (angle_1.sin()));
             let end_point: (f64, f64) = (radius * (angle_2.cos()), radius * (angle_2.sin()));
-            eprintln!("sections: {}, {}", section_0, section_1);
-            eprintln!(
-                "heights:  {}, {}",
-                self._sections_height[section_0 as usize],
-                self._sections_height[section_1 as usize],
-            );
-            if self._sections_height[section_0 as usize]
-                != self._sections_height[section_1 as usize]
-                && i < sections.len() - 1
+
             {
-                eprintln!("-----> entering height transition");
-                compressed_arc.pop();
-                let section_minus_1 = self._change_section(section_0, -1, clockwise);
-                let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
-                let section_minus_3 = self._change_section(section_minus_2, -1, clockwise);
+                eprintln!("--> current sections");
                 eprintln!(
-                    "{}, {}, ({}), {}, {}, {}",
+                    "--> {}, {}, ({}), {}, {}, {}",
                     section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
                 );
+                eprintln!("--> sections heights");
                 eprintln!(
-                    "{}, {}, ({}), {}, {}, {}",
+                    "--> {}, {}, ({}), {}, {}, {}",
                     self._sections_height[section_minus_2 as usize],
                     self._sections_height[section_minus_1 as usize],
                     self._sections_height[section_0 as usize],
@@ -203,11 +296,20 @@ impl Fingerprint {
                     self._sections_height[section_2 as usize],
                     self._sections_height[section_3 as usize],
                 );
+            } // debug prints
+
+            if self._sections_height[section_0 as usize]
+                != self._sections_height[section_1 as usize]
+                && i < sections.len() - 1
+            {
+                eprintln!("---> height transition");
+                compressed_arc.pop();
+
                 if i == sections.len() - 3
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
                 {
-                    eprintln!("---># lowering before nose");
+                    eprintln!("----> lowering before nose");
                     i += 1;
                     touchy_nose = true;
                     compressed_arc.append(
@@ -245,12 +347,29 @@ impl Fingerprint {
                     height_transition.remove(0);
                     compressed_arc.append(&mut height_transition);
                     self._sections_height[section_2 as usize] =
-                        self._sections_height[section_0 as usize] + 1;
+                        self._sections_height[section_0 as usize];
+                } else if i < sections.len() - 2
+                    && self._sections_height[section_0 as usize]
+                        > self._sections_height[section_1 as usize]
+                    && self._sections_height[section_0 as usize]
+                        <= self._sections_height[section_2 as usize]
+                {
+                    eprintln!("----> tight pit");
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (radius, radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: clockwise,
+                        point: end_point,
+                        coordinate_type: Absolute,
+                    }));
+                    self._sections_height[section_1 as usize] =
+                        self._sections_height[section_0 as usize];
                 } else if i == sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
                 {
-                    eprintln!("---># lowering in nose");
+                    eprintln!("----> lowering in nose");
                     i += 1;
                     touchy_nose = true;
                     compressed_arc.append(
@@ -294,7 +413,7 @@ impl Fingerprint {
                         > self._sections_height[section_1 as usize]
                     && self._sections_height[section_1 as usize] < 4
                 {
-                    eprintln!("---># lowering in close to center 3 before nose");
+                    eprintln!("----> lowering in close to center 3 before nose");
                     i += 2;
                     touchy_nose = true;
                     let section_angle_delta =
@@ -344,7 +463,7 @@ impl Fingerprint {
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
                 {
-                    eprintln!("---># raise before nose");
+                    eprintln!("----> raise before nose");
                     touchy_nose = true;
                     compressed_arc.pop();
                     let orig_section_height_minus_2 =
@@ -414,6 +533,7 @@ impl Fingerprint {
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
                 {
+                    eprintln!("----> raising");
                     compressed_arc.push(Box::new(Arc {
                         radius: (radius, radius),
                         x_axis_rotation: 0.0,
@@ -424,23 +544,6 @@ impl Fingerprint {
                     }));
                     self._sections_height[section_1 as usize] =
                         self._sections_height[section_0 as usize];
-                } else if i < sections.len() - 2
-                    && self._sections_height[section_0 as usize]
-                        > self._sections_height[section_1 as usize]
-                    && self._sections_height[section_0 as usize]
-                        <= self._sections_height[section_2 as usize]
-                {
-                    compressed_arc.push(Box::new(Arc {
-                        radius: (radius, radius),
-                        x_axis_rotation: 0.0,
-                        large_arc_flag: false,
-                        sweep_flag: clockwise,
-                        point: end_point,
-                        coordinate_type: Absolute,
-                    }));
-                    self._sections_height[section_1 as usize] =
-                        self._sections_height[section_0 as usize];
-                    eprintln!("---># tight pit");
                 } else if i < sections.len() - 2
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
@@ -449,7 +552,7 @@ impl Fingerprint {
                     && self._sections_height[section_2 as usize]
                         < self._sections_height[section_3 as usize]
                 {
-                    eprintln!("---># diving in pit");
+                    eprintln!("----> diving in pit");
                     compressed_arc.append(
                         &mut self._new_height_transition(section_0, section_1, clockwise, false),
                     );
@@ -461,7 +564,7 @@ impl Fingerprint {
                     && self._sections_height[section_0 as usize]
                         < self._sections_height[section_1 as usize]
                 {
-                    eprintln!("---># getting out of pit");
+                    eprintln!("----> getting out of pit");
                     let section_angle_delta =
                         Self::_angle_from_section(1, self._nb_sections as i32 * 2);
                     let tmp_radius = Self::_compute_size_from_angular(
@@ -488,6 +591,7 @@ impl Fingerprint {
                     height_transition.remove(0);
                     compressed_arc.append(&mut height_transition);
                 } else {
+                    eprintln!("----> default case");
                     compressed_arc.append(
                         &mut self._new_height_transition(section_0, section_1, clockwise, false),
                     );
@@ -536,9 +640,9 @@ impl Fingerprint {
             i += 1;
         }
         // self._sections_height[sections[sections.len() - 1 as usize] as usize] += 1;
-        eprintln!("## sections_heights {:?}", self._sections_height);
+        eprintln!("--> sections heights:\n--> {:?}", self._sections_height);
         eprintln!(
-            "## sections_height_to_add {:?}",
+            "--> sections height to add:\n--> {:?}",
             height_increment_to_apply_after_arc
         );
         if !touchy_nose {
@@ -553,9 +657,32 @@ impl Fingerprint {
             .zip(height_increment_to_apply_after_arc.iter())
             .map((|(&a, &b)| a + b))
             .collect::<Vec<i32>>();
-        eprintln!("### sections_heights {:?}", self._sections_height);
+        eprintln!(
+            "--> sections heights added\n--> {:?}",
+            self._sections_height
+        );
+        self._fill_tight_gaps();
 
         compressed_arc
+    }
+    fn _fill_tight_gaps(&mut self) {
+        let mut i: usize = 0;
+
+        while i < self._sections_height.len() {
+            let index_0 = i;
+            let index_1 = (i + 1) % self._sections_height.len();
+            let index_2 = (i + 2) % self._sections_height.len();
+
+            let height_0 = self._sections_height[index_0];
+            let height_1 = self._sections_height[index_1];
+            let height_2 = self._sections_height[index_2];
+
+            if height_1 < height_0 && height_1 < height_2 {
+                self._sections_height[index_1] = min(height_0, height_2);
+            }
+
+            i += 1;
+        }
     }
     fn _new_nose(&self, angle: f64, radius: f64, clockwise: bool) -> Box<Arc> {
         let end_point = (radius * (angle.cos()), radius * (angle.sin()));
@@ -624,101 +751,6 @@ impl Fingerprint {
             ));
         }
         result
-    }
-    pub fn render(&mut self) -> String {
-        let mut path = Path::new();
-        let mut current_section: i8 = 0;
-        let mut clockwise = true;
-        let mut current_dist_to_center = self._inner_circle_radius;
-        self._encoded_text = simple_latin_symbols::encode(&self._text);
-
-        path = path
-            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
-            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
-            .set_stroke_linecap(StrokeLineCap::Round)
-            .add_commands(vec![Box::new(MoveTo {
-                point: (
-                    (0.5 * (2. * PI / self._nb_sections as f64)).cos() * current_dist_to_center,
-                    (0.5 as f64 * (2. * PI / self._nb_sections as f64)).sin()
-                        * current_dist_to_center,
-                ),
-                coordinate_type: Absolute,
-            })]);
-
-        // let last_section = self._sections_height.len() - 1 as usize;
-        // self._sections_height[last_section] = 1;
-        for current_char in &self._encoded_text.clone() {
-            let previous_section = current_section;
-            current_section = *current_char;
-
-            let compressed_arc =
-                self._new_compressed_arc(previous_section, current_section, clockwise);
-            path = path.add_commands(compressed_arc);
-            clockwise = !clockwise;
-        }
-
-        let rays: Vec<Box<dyn Element>> = self._generate_rays();
-        self._svg_document.add_element(Box::new(
-            Rectangle::new()
-                .set_pos((-1000., -1000.))
-                .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-        ));
-        self._svg_document.add_elements(rays);
-        self._svg_document.add_element(Box::new(path));
-        self._svg_document
-            .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
-        self._svg_document.render()
-    }
-    pub fn render_circular(&mut self) -> String {
-        let mut path = Path::new();
-        let mut current_angle: f64 = 0.;
-        let mut clockwise = true;
-        let mut current_dist_to_center = self._inner_circle_radius;
-        self._encoded_text = simple_latin_symbols::encode(&self._text);
-
-        path = path
-            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
-            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
-            .set_stroke_linecap(StrokeLineCap::Round)
-            .add_commands(vec![Box::new(MoveTo {
-                point: (
-                    current_angle.cos() * current_dist_to_center,
-                    current_angle.sin() * current_dist_to_center,
-                ),
-                coordinate_type: Absolute,
-            })]);
-
-        for current_char in &self._encoded_text {
-            let previous_angle = current_angle;
-            current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
-
-            let arc = Self::_new_arc(
-                previous_angle,
-                current_angle,
-                current_dist_to_center,
-                clockwise,
-            );
-            current_dist_to_center += self._nose_size;
-            let nose = self._new_nose(current_angle, current_dist_to_center, clockwise);
-            path = path.add_commands(vec![arc, nose]);
-            clockwise = !clockwise;
-        }
-
-        self._svg_document
-            .add_elements(vec![
-                Box::new(
-                    Rectangle::new()
-                        .set_pos((-1000., -1000.))
-                        .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                        .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-                ),
-                Box::new(path),
-                Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
-            ])
-            .render()
     }
     fn _compute_inner_circle_radius(nb_sections: i8, nose_size: f64) -> f64 {
         (nb_sections as f64 * (nose_size / 2. + 20.)) / (2. * PI)
