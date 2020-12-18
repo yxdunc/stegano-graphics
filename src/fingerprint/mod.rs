@@ -343,6 +343,7 @@ impl Fingerprint {
                         self._new_height_transition(section_2, section_1, !clockwise, false);
                     height_transition.remove(0);
                     height_transition.remove(0);
+                    height_transition.pop();
                     compressed_arc.append(&mut height_transition);
                     self._sections_height[section_2 as usize] =
                         self._sections_height[section_0 as usize];
@@ -402,6 +403,7 @@ impl Fingerprint {
                         self._new_height_transition(section_2, section_1, !clockwise, false);
                     height_transition.remove(0);
                     height_transition.remove(0);
+                    height_transition.pop();
                     compressed_arc.append(&mut height_transition);
                     self._sections_height[section_2 as usize] =
                         self._sections_height[section_0 as usize] + 1;
@@ -839,7 +841,7 @@ impl Fingerprint {
             turn_2_end_radius * (turn_2_end_angle.sin()),
         );
         let end_section_angle =
-            (section_1 - angle_change) as f64 * (2. * PI / (self._nb_sections * 2) as f64);
+            (section_1 + angle_change * 2.) as f64 * (2. * PI / (self._nb_sections * 2) as f64);
         let end_section_point = (
             turn_2_end_radius * (end_section_angle.cos()),
             turn_2_end_radius * (end_section_angle.sin()),
@@ -851,7 +853,7 @@ impl Fingerprint {
             // (turn_1_end_point.0 - turn_2_start_point.0).abs(),
         );
 
-        let result: Vec<Box<dyn Command>> = vec![
+        let mut result: Vec<Box<dyn Command>> = vec![
             Box::new(Arc {
                 radius: (turn_1_start_radius, turn_1_start_radius),
                 x_axis_rotation: 0.0,
@@ -881,15 +883,17 @@ impl Fingerprint {
                 point: turn_2_end_point,
                 coordinate_type: Absolute,
             }),
-            // Box::new(Arc {
-            //     radius: (turn_2_end_radius, turn_2_end_radius),
-            //     x_axis_rotation: 0.0,
-            //     large_arc_flag: false,
-            //     sweep_flag: clockwise,
-            //     point: end_section_point,
-            //     coordinate_type: Absolute,
-            // }),
         ];
+        if is_raising {
+            result.push(Box::new(Arc {
+                radius: (turn_2_end_radius, turn_2_end_radius),
+                x_axis_rotation: 0.0,
+                large_arc_flag: false,
+                sweep_flag: clockwise,
+                point: end_section_point,
+                coordinate_type: Absolute,
+            }));
+        }
         result
     }
     fn _stroke_angular_size(&self, distance_to_center: f64) -> f64 {
