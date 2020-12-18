@@ -303,7 +303,6 @@ impl Fingerprint {
                 && i < sections.len() - 1
             {
                 eprintln!("---> height transition");
-                compressed_arc.pop();
 
                 if i == sections.len() - 3
                     && self._sections_height[section_0 as usize]
@@ -328,7 +327,6 @@ impl Fingerprint {
                         (radius_0 + self._nose_size / 2.) * (angle_3.cos()),
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
                     );
-                    compressed_arc.pop();
                     compressed_arc.pop();
                     compressed_arc.push(Box::new(Arc {
                         radius: (tmp_radius, tmp_radius),
@@ -388,7 +386,6 @@ impl Fingerprint {
                         (radius_0 + self._nose_size / 2.) * (angle_3.cos()),
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
                     );
-                    compressed_arc.pop();
                     compressed_arc.pop();
                     compressed_arc.push(Box::new(Arc {
                         radius: (tmp_radius, tmp_radius),
@@ -465,6 +462,7 @@ impl Fingerprint {
                 {
                     eprintln!("----> raise before nose");
                     touchy_nose = true;
+                    compressed_arc.pop();
                     compressed_arc.pop();
                     let orig_section_height_minus_2 =
                         self._sections_height[section_minus_2 as usize];
@@ -592,6 +590,11 @@ impl Fingerprint {
                     compressed_arc.append(&mut height_transition);
                 } else {
                     eprintln!("----> default case");
+                    if self._sections_height[section_0 as usize]
+                        < self._sections_height[section_1 as usize]
+                    {
+                        compressed_arc.pop();
+                    }
                     compressed_arc.append(
                         &mut self._new_height_transition(section_0, section_1, clockwise, false),
                     );
@@ -878,14 +881,14 @@ impl Fingerprint {
                 point: turn_2_end_point,
                 coordinate_type: Absolute,
             }),
-            Box::new(Arc {
-                radius: (turn_2_end_radius, turn_2_end_radius),
-                x_axis_rotation: 0.0,
-                large_arc_flag: false,
-                sweep_flag: clockwise,
-                point: end_section_point,
-                coordinate_type: Absolute,
-            }),
+            // Box::new(Arc {
+            //     radius: (turn_2_end_radius, turn_2_end_radius),
+            //     x_axis_rotation: 0.0,
+            //     large_arc_flag: false,
+            //     sweep_flag: clockwise,
+            //     point: end_section_point,
+            //     coordinate_type: Absolute,
+            // }),
         ];
         result
     }
