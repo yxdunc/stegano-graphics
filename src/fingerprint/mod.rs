@@ -288,23 +288,23 @@ impl Fingerprint {
             let starting_point: (f64, f64) = (radius * (angle_1.cos()), radius * (angle_1.sin()));
             let end_point: (f64, f64) = (radius * (angle_2.cos()), radius * (angle_2.sin()));
 
-            // {
-            //     eprintln!("--> current sections");
-            //     eprintln!(
-            //         "--> {}, {}, ({}), {}, {}, {}",
-            //         section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
-            //     );
-            //     eprintln!("--> sections heights");
-            //     eprintln!(
-            //         "--> {}, {}, ({}), {}, {}, {}",
-            //         self._sections_height[section_minus_2 as usize],
-            //         self._sections_height[section_minus_1 as usize],
-            //         self._sections_height[section_0 as usize],
-            //         self._sections_height[section_1 as usize],
-            //         self._sections_height[section_2 as usize],
-            //         self._sections_height[section_3 as usize],
-            //     );
-            // } // debug prints
+            {
+                // eprintln!("--> current sections");
+                // eprintln!(
+                //     "--> {}, {}, ({}), {}, {}, {}",
+                //     section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
+                // );
+                // eprintln!("--> sections heights");
+                // eprintln!(
+                //     "--> {}, {}, ({}), {}, {}, {}",
+                //     self._sections_height[section_minus_2 as usize],
+                //     self._sections_height[section_minus_1 as usize],
+                //     self._sections_height[section_0 as usize],
+                //     self._sections_height[section_1 as usize],
+                //     self._sections_height[section_2 as usize],
+                //     self._sections_height[section_3 as usize],
+                // );
+            } // debug prints
 
             if self._sections_height[section_0 as usize]
                 != self._sections_height[section_1 as usize]
@@ -441,14 +441,8 @@ impl Fingerprint {
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
                     );
                     compressed_arc.pop();
-                    compressed_arc.push(Box::new(Arc {
-                        radius: (tmp_radius, tmp_radius),
-                        x_axis_rotation: 0.0,
-                        large_arc_flag: false,
-                        sweep_flag: !clockwise,
-                        point: tmp_start_point,
-                        coordinate_type: Absolute,
-                    }));
+                    compressed_arc
+                        .append(&mut self._new_downward_nose(section_1, section_2, clockwise));
                     self._sections_height[section_0 as usize] += 1;
                     self._sections_height[section_1 as usize] =
                         self._sections_height[section_0 as usize];
