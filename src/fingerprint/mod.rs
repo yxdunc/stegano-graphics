@@ -185,7 +185,7 @@ impl Fingerprint {
         section_1: i8,
         clockwise: bool,
     ) -> Vec<Box<dyn Command>> {
-        let split_arc = self._sections_height[section_0 as usize] > 3;
+        let split_arc = self._sections_height[section_0 as usize] > 4;
         eprintln!("-----> downward_nose");
         eprintln!(
             "-----> section_0 height: {}",
@@ -322,24 +322,15 @@ impl Fingerprint {
                     eprintln!("----> getting out of pit");
                     let section_angle_delta =
                         Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
-                    let tmp_radius = Self::_compute_size_from_angular(
-                        section_angle_delta / 2.,
-                        self._compute_distance_to_center(section_0),
-                    );
-                    let tmp_start_point = (
-                        (radius + self._nose_size / 2.) * (angle_1.cos()),
-                        (radius + self._nose_size / 2.) * (angle_1.sin()),
-                    );
+
                     compressed_arc.pop();
                     compressed_arc.pop();
-                    compressed_arc.push(Box::new(Arc {
-                        radius: (tmp_radius, tmp_radius),
-                        x_axis_rotation: 0.0,
-                        large_arc_flag: false,
-                        sweep_flag: !clockwise,
-                        point: tmp_start_point,
-                        coordinate_type: Absolute,
-                    }));
+                    self._sections_height[section_minus_1 as usize] -= 1;
+                    compressed_arc.append(&mut self._new_downward_nose(
+                        section_minus_1,
+                        section_0,
+                        clockwise,
+                    ));
                     let mut height_transition =
                         self._new_height_transition(section_0, section_1, clockwise, true);
                     height_transition.remove(0);
