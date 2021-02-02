@@ -65,6 +65,7 @@ impl Spiral {
 
     // Renderer
     pub fn render(&mut self) -> String {
+        let section_angular_len = (2. * PI / self._nb_sections as f64);
         let mut path = Path::new();
         let mut current_angle: f64 = 0.;
         let mut clockwise = true;
@@ -88,18 +89,21 @@ impl Spiral {
             })]);
 
         for current_char in &self._encoded_text {
+            let mut new_commands: Vec<Box<dyn Command>> = Vec::new();
             let previous_angle = current_angle;
-            current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
+            current_angle = *current_char as f64 * section_angular_len;
 
-            let arc = Self::_new_arc(
-                previous_angle,
-                current_angle,
-                current_dist_to_center,
-                clockwise,
-            );
+            if f64::abs(previous_angle - current_angle) > section_angular_len / 2. {
+                new_commands.push(Self::_new_arc(
+                    previous_angle,
+                    current_angle,
+                    current_dist_to_center,
+                    clockwise,
+                ));
+            }
             current_dist_to_center += self._nose_size;
-            let nose = self._new_nose(current_angle, current_dist_to_center, clockwise);
-            path = path.add_commands(vec![arc, nose]);
+            new_commands.push(self._new_nose(current_angle, current_dist_to_center, clockwise));
+            path = path.add_commands(new_commands);
             clockwise = !clockwise;
         }
 
@@ -121,6 +125,7 @@ impl Spiral {
     fn _new_arc(angle_1: f64, angle_2: f64, radius: f64, clockwise: bool) -> Box<Arc> {
         let mut arc_angle;
         let end_point = (radius * (angle_2.cos()), radius * (angle_2.sin()));
+        eprintln!("Drawing arc from {} to {}", angle_1, angle_2);
         if clockwise {
             if angle_1 > angle_2 {
                 arc_angle = angle_2 + (2. * PI - angle_1);
@@ -135,6 +140,7 @@ impl Spiral {
             }
         }
         let is_large = arc_angle > PI;
+
         Box::new(Arc {
             radius: (radius, radius),
             x_axis_rotation: 0.0,
