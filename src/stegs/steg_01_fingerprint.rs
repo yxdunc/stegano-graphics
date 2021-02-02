@@ -4,7 +4,7 @@ use std::borrow::BorrowMut;
 use std::cmp::min;
 use std::f64::consts::PI;
 use std::panic::resume_unwind;
-use svg_composer::element::attributes::{Color, ColorName, Paint, Size, StrokeLineCap};
+use svg_composer::element::attributes::{ClassName, Color, ColorName, Paint, Size, StrokeLineCap};
 use svg_composer::element::circle::Circle;
 use svg_composer::element::line::Line;
 use svg_composer::element::path::command::CoordinateType::Absolute;
@@ -64,6 +64,9 @@ impl Fingerprint {
         self._encoded_text = simple_latin_symbols::encode(&self._text);
 
         path = path
+            .set_classes(vec![
+                ClassName::from_string("main_path".to_string()).unwrap()
+            ])
             .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
             .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
             .set_stroke_width(Size::from_length(self._compute_stroke_width()))
@@ -102,83 +105,8 @@ impl Fingerprint {
             .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
         self._svg_document.render()
     }
-    pub fn render_circular(&mut self) -> String {
-        let mut path = Path::new();
-        let mut current_angle: f64 = 0.;
-        let mut clockwise = true;
-        let mut current_dist_to_center = self._inner_circle_radius;
-        self._encoded_text = simple_latin_symbols::encode(&self._text);
-
-        path = path
-            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
-            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
-            .set_stroke_linecap(StrokeLineCap::Round)
-            .add_commands(vec![Box::new(MoveTo {
-                point: (
-                    current_angle.cos() * current_dist_to_center,
-                    current_angle.sin() * current_dist_to_center,
-                ),
-                coordinate_type: Absolute,
-            })]);
-
-        for current_char in &self._encoded_text {
-            let previous_angle = current_angle;
-            current_angle = *current_char as f64 * (2. * PI / self._nb_sections as f64);
-
-            let arc = Self::_new_arc(
-                previous_angle,
-                current_angle,
-                current_dist_to_center,
-                clockwise,
-            );
-            current_dist_to_center += self._nose_size;
-            let nose = self._new_nose(current_angle, current_dist_to_center, clockwise);
-            path = path.add_commands(vec![arc, nose]);
-            clockwise = !clockwise;
-        }
-
-        self._svg_document
-            .add_elements(vec![
-                Box::new(
-                    Rectangle::new()
-                        .set_pos((-1000., -1000.))
-                        .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                        .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-                ),
-                Box::new(path),
-                Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
-            ])
-            .render()
-    }
 
     // Drawing methods
-    fn _new_arc(angle_1: f64, angle_2: f64, radius: f64, clockwise: bool) -> Box<Arc> {
-        let mut arc_angle;
-        let end_point = (radius * (angle_2.cos()), radius * (angle_2.sin()));
-        if clockwise {
-            if angle_1 > angle_2 {
-                arc_angle = angle_2 + (2. * PI - angle_1);
-            } else {
-                arc_angle = angle_2 - angle_1;
-            }
-        } else {
-            if angle_1 < angle_2 {
-                arc_angle = angle_1 + (2. * PI - angle_2);
-            } else {
-                arc_angle = angle_1 - angle_2;
-            }
-        }
-        let is_large = arc_angle > PI;
-        Box::new(Arc {
-            radius: (radius, radius),
-            x_axis_rotation: 0.0,
-            large_arc_flag: is_large,
-            sweep_flag: clockwise,
-            point: end_point,
-            coordinate_type: Absolute,
-        })
-    }
     fn _new_downward_nose(
         &self,
         section_0: i8,
