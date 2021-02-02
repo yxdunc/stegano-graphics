@@ -70,15 +70,21 @@ impl Fingerprint {
             .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
             .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
             .set_stroke_width(Size::from_length(self._compute_stroke_width()))
-            .set_stroke_linecap(StrokeLineCap::Round)
-            .add_commands(vec![Box::new(MoveTo {
+            .set_stroke_linecap(StrokeLineCap::Round);
+
+        if let Some(first_char) = self._encoded_text.get(0) {
+            let starting_section = 0.5;
+
+            path = path.add_commands(vec![Box::new(MoveTo {
                 point: (
-                    (0.5 * (2. * PI / self._nb_sections as f64)).cos() * current_dist_to_center,
-                    (0.5 as f64 * (2. * PI / self._nb_sections as f64)).sin()
+                    (starting_section * (2. * PI / self._nb_sections as f64)).cos()
+                        * current_dist_to_center,
+                    (starting_section * (2. * PI / self._nb_sections as f64)).sin()
                         * current_dist_to_center,
                 ),
                 coordinate_type: Absolute,
             })]);
+        }
 
         // let last_section = self._sections_height.len() - 1 as usize;
         // self._sections_height[last_section] = 1;
@@ -560,14 +566,29 @@ impl Fingerprint {
                     height_increment_to_apply_after_arc[section_1 as usize] = height_difference;
                 }
             } else if i < sections.len() - 1 {
-                compressed_arc.push(Box::new(Arc {
-                    radius: (radius, radius),
-                    x_axis_rotation: 0.0,
-                    large_arc_flag: false,
-                    sweep_flag: clockwise,
-                    point: end_point,
-                    coordinate_type: Absolute,
-                }));
+                eprintln!(
+                    "---> new simple segment from section {} to section {}",
+                    section_0, section_1
+                );
+                eprintln!(
+                    "--->                    from angle {} to angle {}",
+                    angle_1, angle_2
+                );
+                let diff = if clockwise {
+                    angle_2 - angle_1
+                } else {
+                    angle_1 - angle_2
+                };
+                if diff > 0. {
+                    compressed_arc.push(Box::new(Arc {
+                        radius: (radius, radius),
+                        x_axis_rotation: 0.0,
+                        large_arc_flag: false,
+                        sweep_flag: clockwise,
+                        point: end_point,
+                        coordinate_type: Absolute,
+                    }));
+                }
             }
             if !touchy_nose {
                 self._sections_height[section_0 as usize] += 1;
@@ -679,12 +700,6 @@ impl Fingerprint {
         let end_section_point = (
             turn_2_end_radius * (end_section_angle.cos()),
             turn_2_end_radius * (end_section_angle.sin()),
-        );
-
-        let angle_2_radius = (
-            (turn_1_end_point.1 - turn_2_start_point.1).abs(),
-            (turn_1_end_point.1 - turn_2_start_point.1).abs(),
-            // (turn_1_end_point.0 - turn_2_start_point.0).abs(),
         );
 
         let mut result: Vec<Box<dyn Command>> = vec![
