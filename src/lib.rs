@@ -1,4 +1,5 @@
 pub mod encoder;
+pub mod geometry;
 pub mod stegs;
 
 #[cfg(test)]
