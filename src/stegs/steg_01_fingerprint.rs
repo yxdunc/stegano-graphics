@@ -1,8 +1,10 @@
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
+use crate::geometry::radial::{compute_angle_from_section, is_between_circular_angles};
 use std::borrow::BorrowMut;
 use std::cmp::min;
 use std::f64::consts::PI;
+use std::f64::consts::TAU;
 use std::panic::resume_unwind;
 use svg_composer::element::attributes::{ClassName, Color, ColorName, Paint, Size, StrokeLineCap};
 use svg_composer::element::circle::Circle;
@@ -53,6 +55,15 @@ impl Fingerprint {
     pub fn set_text(mut self, text: &str) -> Self {
         self._text = text.to_string();
         self
+    }
+
+    // getters
+    pub fn _section_delta(&self, clockwise: bool) -> f64 {
+        let delta = TAU / self._nb_sections as f64;
+        match clockwise {
+            true => delta,
+            false => delta * -1.,
+        }
     }
 
     // Renderers
@@ -113,6 +124,54 @@ impl Fingerprint {
     }
 
     // Drawing methods
+    fn _new_arc(
+        &self,
+        point_angle: f64,
+        point_radius: f64,
+        radius: f64,
+        sweep: bool,
+        large_arc: bool,
+    ) -> Box<dyn Command> {
+        let point = (
+            point_radius * (point_angle.cos()),
+            point_radius * (point_angle.sin()),
+        );
+        Box::new(Arc {
+            radius: (radius, radius),
+            x_axis_rotation: 0.0,
+            large_arc_flag: large_arc,
+            sweep_flag: sweep,
+            point,
+            coordinate_type: Absolute,
+        })
+    }
+    fn _new_arc_safe(
+        &self,
+        constraint_angle_1: f64,
+        constraint_angle_2: f64,
+        angle: f64,
+        radius: f64,
+        arc_radius: f64,
+        sweep: bool,
+        large_arc: bool,
+        clockwise: bool,
+    ) -> Vec<Box<dyn Command>> {
+        let complies =
+            is_between_circular_angles(constraint_angle_1, angle, constraint_angle_2, clockwise);
+        if !complies {
+            eprintln!(
+                "[Warning] An arc doesn't respect it's constraints... cw: {}",
+                clockwise
+            );
+            eprintln!(
+                "[Warning] constraint_1: {} constraint_2: {}",
+                constraint_angle_1, constraint_angle_2
+            );
+            eprintln!("[Warning] angle: {} radius: {}", angle, radius);
+        }
+
+        vec![self._new_arc(angle, radius, arc_radius, sweep, large_arc)]
+    }
     fn _new_downward_nose(
         &self,
         section_0: i8,
@@ -134,9 +193,9 @@ impl Fingerprint {
             Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
         let mut nose_radius = Self::_compute_size_from_angular(
             section_angle_delta / 2.,
-            self._compute_distance_to_center(section_0),
+            self._compute_section_radius(section_0),
         );
-        let distance_to_center = self._compute_distance_to_center(section_0);
+        let distance_to_center = self._compute_section_radius(section_0);
         let arc_2_end_point = (
             (distance_to_center + self._nose_size / 2.) * (angle_section_1.cos()),
             (distance_to_center + self._nose_size / 2.) * (angle_section_1.sin()),
@@ -211,7 +270,7 @@ impl Fingerprint {
             let section_minus_2 = self._change_section(section_minus_1, -1, clockwise);
             let section_minus_3 = self._change_section(section_minus_2, -1, clockwise);
 
-            let radius = self._compute_distance_to_center(section_0);
+            let radius = self._compute_section_radius(section_0);
             let mut angle_1 =
                 Self::_compute_angle_from_section(section_0, self._nb_sections as i32 * 2);
             let mut angle_2 =
@@ -272,15 +331,15 @@ impl Fingerprint {
                     compressed_arc.append(&mut height_transition);
                     compressed_arc.pop();
                     let tmp_angle_2 = self._compute_nosed_angle(section_1, clockwise);
-                    let tmp_radius = self._compute_distance_to_center(section_1);
+                    let tmp_radius = self._compute_section_radius(section_1);
                     let tmp_start_nose_point: (f64, f64) = (
                         (tmp_radius) * (tmp_angle_2.cos()),
                         (tmp_radius) * (tmp_angle_2.sin()),
                     );
                     compressed_arc.push(Box::new(Arc {
                         radius: (
-                            self._compute_distance_to_center(section_1),
-                            self._compute_distance_to_center(section_1),
+                            self._compute_section_radius(section_1),
+                            self._compute_section_radius(section_1),
                         ),
                         x_axis_rotation: 0.0,
                         large_arc_flag: false,
@@ -304,9 +363,9 @@ impl Fingerprint {
                         Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
                     let tmp_radius = Self::_compute_size_from_angular(
                         section_angle_delta / 2.,
-                        self._compute_distance_to_center(section_1),
+                        self._compute_section_radius(section_1),
                     );
-                    let radius_0 = self._compute_distance_to_center(section_1);
+                    let radius_0 = self._compute_section_radius(section_1);
                     let tmp_start_point = (
                         (radius_0 + self._nose_size / 2.) * (angle_3.cos()),
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
@@ -358,9 +417,9 @@ impl Fingerprint {
                         Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
                     let tmp_radius = Self::_compute_size_from_angular(
                         section_angle_delta / 2.,
-                        self._compute_distance_to_center(section_1),
+                        self._compute_section_radius(section_1),
                     );
-                    let radius_0 = self._compute_distance_to_center(section_1);
+                    let radius_0 = self._compute_section_radius(section_1);
                     let tmp_start_point = (
                         (radius_0 + self._nose_size / 2.) * (angle_3.cos()),
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
@@ -389,10 +448,10 @@ impl Fingerprint {
                     touchy_nose = true;
                     let section_angle_delta =
                         Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
-                    let radius_0 = self._compute_distance_to_center(section_1);
+                    let radius_0 = self._compute_section_radius(section_1);
                     let tmp_radius = Self::_compute_size_from_angular(
                         section_angle_delta / 2.,
-                        self._compute_distance_to_center(section_1),
+                        self._compute_section_radius(section_1),
                     );
                     self._sections_height[section_1 as usize] =
                         self._sections_height[section_0 as usize];
@@ -407,7 +466,7 @@ impl Fingerprint {
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
                     );
                     compressed_arc.pop();
-                    compressed_arc.pop();
+                    // compressed_arc.pop();
                     compressed_arc.push(Box::new(Arc {
                         radius: (tmp_radius, tmp_radius),
                         x_axis_rotation: 0.0,
@@ -459,7 +518,7 @@ impl Fingerprint {
                             Self::_compute_angle_from_section(1, self._nb_sections as i32 * 2);
                         let tmp_radius = Self::_compute_size_from_angular(
                             section_angle_delta / 2.,
-                            self._compute_distance_to_center(section_minus_1),
+                            self._compute_section_radius(section_minus_1),
                         );
                         let tmp_angle = Self::_compute_angle_from_section(
                             section_minus_1,
@@ -484,15 +543,15 @@ impl Fingerprint {
                         self._sections_height[section_1 as usize] + 1;
                     self._sections_height[section_0 as usize] += 1;
                     let tmp_angle_2 = self._compute_nosed_angle(section_1, clockwise);
-                    let tmp_radius = self._compute_distance_to_center(section_0);
+                    let tmp_radius = self._compute_section_radius(section_0);
                     let tmp_start_nose_point: (f64, f64) = (
                         (tmp_radius - self._nose_size) * (tmp_angle_2.cos()),
                         (tmp_radius - self._nose_size) * (tmp_angle_2.sin()),
                     );
                     compressed_arc.push(Box::new(Arc {
                         radius: (
-                            self._compute_distance_to_center(section_0) - self._nose_size,
-                            self._compute_distance_to_center(section_0) - self._nose_size,
+                            self._compute_section_radius(section_0) - self._nose_size,
+                            self._compute_section_radius(section_0) - self._nose_size,
                         ),
                         x_axis_rotation: 0.0,
                         large_arc_flag: false,
@@ -566,29 +625,16 @@ impl Fingerprint {
                     height_increment_to_apply_after_arc[section_1 as usize] = height_difference;
                 }
             } else if i < sections.len() - 1 {
-                eprintln!(
-                    "---> new simple segment from section {} to section {}",
-                    section_0, section_1
-                );
-                eprintln!(
-                    "--->                    from angle {} to angle {}",
-                    angle_1, angle_2
-                );
-                let diff = if clockwise {
-                    angle_2 - angle_1
-                } else {
-                    angle_1 - angle_2
-                };
-                if diff > 0. {
-                    compressed_arc.push(Box::new(Arc {
-                        radius: (radius, radius),
-                        x_axis_rotation: 0.0,
-                        large_arc_flag: false,
-                        sweep_flag: clockwise,
-                        point: end_point,
-                        coordinate_type: Absolute,
-                    }));
-                }
+                compressed_arc.append(&mut self._new_arc_safe(
+                    angle_1,
+                    angle_1 + self._section_delta(clockwise),
+                    angle_2,
+                    radius,
+                    radius,
+                    clockwise,
+                    false,
+                    clockwise,
+                ));
             }
             if !touchy_nose {
                 self._sections_height[section_0 as usize] += 1;
@@ -634,8 +680,6 @@ impl Fingerprint {
     ) -> Vec<Box<dyn Command>> {
         let is_raising =
             self._sections_height[section_0 as usize] < self._sections_height[section_1 as usize];
-        let section_0 = section_0 as f64;
-        let section_1 = section_1 as f64;
 
         let sweep = is_raising ^ clockwise;
         let height_change;
@@ -653,20 +697,21 @@ impl Fingerprint {
             height_change = -0.5;
             angle_change = -1.;
         };
-        let turn_1_start_radius = self._inner_circle_radius
-            + (self._sections_height[section_0 as usize] as f64) * self._nose_size;
+        let turn_1_start_radius = self._compute_section_radius(section_0);
+        let section_0 = section_0 as f64;
+        let section_1 = section_1 as f64;
         let angular_len_nose = if clockwise {
             self._compute_nose_angular_size(turn_1_start_radius) * -1.
         } else {
             self._compute_nose_angular_size(turn_1_start_radius)
         };
+        let special_invert_angle_change =
+            (f64::abs(angle_change) - 1.).abs() * (-1. * clockwise as i32 as f64);
+        let start_angle = (section_0 as f64 + special_invert_angle_change)
+            * (2. * PI / (self._nb_sections * 2) as f64);
         let turn_1_start_angle = (section_0 - angle_change) as f64
             * (2. * PI / (self._nb_sections * 2) as f64)
             + angular_len_nose;
-        let turn_1_start_point = (
-            turn_1_start_radius * (turn_1_start_angle.cos()),
-            turn_1_start_radius * (turn_1_start_angle.sin()),
-        );
         let turn_1_end_radius = self._inner_circle_radius
             + (self._sections_height[section_0 as usize] as f64 + height_change) * self._nose_size;
         let turn_1_end_angle =
@@ -701,47 +746,59 @@ impl Fingerprint {
             turn_2_end_radius * (end_section_angle.cos()),
             turn_2_end_radius * (end_section_angle.sin()),
         );
+        let mut result: Vec<Box<dyn Command>> = Vec::new();
+        result.append(&mut self._new_arc_safe(
+            start_angle,
+            start_angle + self._section_delta(clockwise),
+            turn_1_start_angle,
+            turn_1_start_radius,
+            turn_1_start_radius,
+            clockwise,
+            false,
+            clockwise,
+        ));
+        result.append(&mut self._new_arc_safe(
+            turn_1_start_angle,
+            turn_1_start_angle + self._section_delta(clockwise),
+            turn_1_end_angle,
+            turn_1_end_radius,
+            self._nose_size / 2.,
+            sweep,
+            false,
+            clockwise,
+        ));
+        result.push(Box::new(LineTo {
+            point: turn_2_start_point,
+            option: LineToOption::Default,
+            coordinate_type: Absolute,
+        }));
 
-        let mut result: Vec<Box<dyn Command>> = vec![
-            Box::new(Arc {
-                radius: (turn_1_start_radius, turn_1_start_radius),
-                x_axis_rotation: 0.0,
-                large_arc_flag: false,
-                sweep_flag: clockwise,
-                point: turn_1_start_point,
-                coordinate_type: Absolute,
-            }),
-            Box::new(Arc {
-                radius: (self._nose_size / 2., self._nose_size / 2.),
-                x_axis_rotation: 0.0,
-                large_arc_flag: false,
-                sweep_flag: sweep,
-                point: turn_1_end_point,
-                coordinate_type: Absolute,
-            }),
-            Box::new(LineTo {
-                point: turn_2_start_point,
-                option: LineToOption::Default,
-                coordinate_type: Absolute,
-            }),
-            Box::new(Arc {
-                radius: (self._nose_size / 2., self._nose_size / 2.),
-                x_axis_rotation: 0.0,
-                large_arc_flag: false,
-                sweep_flag: !sweep,
-                point: turn_2_end_point,
-                coordinate_type: Absolute,
-            }),
-        ];
+        result.append(&mut self._new_arc_safe(
+            turn_1_end_angle,
+            turn_1_end_angle + self._section_delta(clockwise),
+            turn_2_end_angle,
+            turn_2_end_radius,
+            self._nose_size / 2.,
+            !sweep,
+            false,
+            clockwise,
+        ));
         if is_raising {
-            result.push(Box::new(Arc {
-                radius: (turn_2_end_radius, turn_2_end_radius),
-                x_axis_rotation: 0.0,
-                large_arc_flag: false,
-                sweep_flag: clockwise,
-                point: end_section_point,
-                coordinate_type: Absolute,
-            }));
+            eprintln!(
+                "---> last height transition arc is_clockwise {}; is_raising {}",
+                clockwise, is_raising
+            );
+            result.append(&mut self._new_arc_safe(
+                turn_2_end_angle,
+                turn_2_end_angle + self._section_delta(clockwise),
+                end_section_angle,
+                turn_2_end_radius,
+                turn_2_end_radius,
+                clockwise,
+                false,
+                clockwise,
+            ));
+            eprintln!("<--------------------------------------------------------------");
         }
         result
     }
@@ -776,14 +833,17 @@ impl Fingerprint {
         let nb_sections: f64 = nb_sections as f64;
         section as f64 * (2. * PI / nb_sections)
     }
-    fn _compute_distance_to_center(&self, section: i8) -> f64 {
-        self._inner_circle_radius + self._sections_height[section as usize] as f64 * self._nose_size
+    fn _compute_layer_radius(&self, layer: f64) -> f64 {
+        self._inner_circle_radius + layer * self._nose_size
+    }
+    fn _compute_section_radius(&self, section: i8) -> f64 {
+        self._compute_layer_radius(self._sections_height[section as usize] as f64)
     }
     fn _compute_stroke_angular_size(&self, distance_to_center: f64) -> f64 {
         self._compute_stroke_width() / 2. / distance_to_center
     }
     fn _compute_inner_circle_radius(nb_sections: i8, nose_size: f64) -> f64 {
-        (nb_sections as f64 * (nose_size / 2. + 20.)) / (2. * PI)
+        (nb_sections as f64 * nose_size * 1.5) / (2. * PI)
     }
     fn _compute_stroke_width(&self) -> f64 {
         // TODO
