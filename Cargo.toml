@@ -8,3 +8,7 @@ edition = "2018"
 
 [dependencies]
 svg_composer = { path = "../svg_composer", version = "0.1.0" }
+resvg = "0.13.1"
+usvg = "0.13.1"
+fontdb = "0.5.1"
+tiny-skia = "0.4.1"
