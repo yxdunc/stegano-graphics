@@ -466,7 +466,6 @@ impl Fingerprint {
                         (radius_0 + self._nose_size / 2.) * (angle_3.sin()),
                     );
                     compressed_arc.pop();
-                    // compressed_arc.pop();
                     compressed_arc.push(Box::new(Arc {
                         radius: (tmp_radius, tmp_radius),
                         x_axis_rotation: 0.0,
