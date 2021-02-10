@@ -1010,14 +1010,14 @@ mod tests {
     fn should_generate_section_list_clockwise_not_continuous() {
         let mut fp = Fingerprint::new();
         fp._nb_sections = 10;
-        let sections = fp._generate_section_list(8, 4, true);
-        assert_eq!(sections, vec![8, 9, 0, 1, 2, 3, 4]);
+        let sections = fp._generate_section_list(18, 2, true);
+        assert_eq!(sections, vec![18, 19, 0, 1, 2]);
     }
     #[test]
     fn should_generate_section_list_anti_clockwise_not_continuous() {
         let mut fp = Fingerprint::new();
         fp._nb_sections = 10;
-        let sections = fp._generate_section_list(4, 8, false);
-        assert_eq!(sections, vec![4, 3, 2, 1, 0, 9, 8]);
+        let sections = fp._generate_section_list(2, 18, false);
+        assert_eq!(sections, vec![2, 1, 0, 19, 18]);
     }
 }
