@@ -92,28 +92,29 @@ fn scale_to_fit(
     }
 
     // compute conversion ratio based on vertical or horizontal overflow
+    let mut corrected_shape_width = shape_width;
+    let mut corrected_shape_height = shape_height;
     let shape_aspect_ratio = shape_width / shape_height;
     let frame_aspect_ratio = width / height;
-    let view_box_scalar;
+    let vertical_ratio = height / shape_height;
+    let horizontal_ratio = width / shape_width;
+    let shape_scalar;
     match shape_aspect_ratio < frame_aspect_ratio {
         true => {
-            view_box_scalar = height / shape_height;
+            shape_scalar = vertical_ratio;
             margin_ratio = margin_ratio_height;
+            corrected_shape_width = corrected_shape_height * frame_aspect_ratio;
         }
         false => {
-            view_box_scalar = width / shape_width;
+            shape_scalar = horizontal_ratio;
             margin_ratio = margin_ratio_width;
+            corrected_shape_height = corrected_shape_width / frame_aspect_ratio;
         }
     };
 
     // compute adjustment for stroke
-    let vb_stroke = shape_stroke_width * view_box_scalar;
-    eprintln!(
-        "vb_stroke: {}, view_box_scalar {}",
-        vb_stroke, view_box_scalar
-    );
-    let mut corrected_shape_width = shape_width;
-    let mut corrected_shape_height = shape_height;
+    let vb_stroke = shape_stroke_width * shape_scalar;
+    eprintln!("vb_stroke: {}, view_box_scalar {}", vb_stroke, shape_scalar);
     match vb_stroke {
         s if s < min_stroke => {
             return Err(Error::new("Can't fit shape while respecting min stroke"));
@@ -148,6 +149,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn should_preserve_aspect_ratio() {
+        let width = 20.;
+        let height = 10.;
+        let view_box = scale_to_fit(width, height, 1., 5., 0., 100., 100., 20.).unwrap();
+        assert_eq!(view_box[2] / view_box[3], width / height);
+
+        let width = 10.;
+        let height = 20.;
+        let view_box = scale_to_fit(width, height, 1., 5., 0., 100., 100., 20.).unwrap();
+        assert_eq!(view_box[2] / view_box[3], width / height);
+    }
+
+    #[test]
     fn should_scale_to_fit() {
         let view_box = scale_to_fit(10., 10., 1., 5., 0., 100., 100., 40.);
         let expected: Result<[f64; 4], Error> = Ok([-50.0, -50.0, 100.0, 100.0]);
@@ -165,6 +179,34 @@ mod tests {
     fn should_scale_to_fit_accounting_for_margin() {
         let view_box = scale_to_fit(10., 10., 1., 4., 2.5, 10., 10., 3.);
         let expected: Result<[f64; 4], Error> = Ok([-10., -10., 20.0, 20.0]);
+
+        assert_eq!(view_box.unwrap(), expected.unwrap());
+    }
+    #[test]
+    fn should_scale_to_fit_vertical_1() {
+        let view_box = scale_to_fit(10., 100., 0.001, 100., 0., 10., 5., 1.);
+        let expected: Result<[f64; 4], Error> = Ok([-5., -50., 10., 100.]);
+
+        assert_eq!(view_box.unwrap(), expected.unwrap());
+    }
+    #[test]
+    fn should_scale_to_fit_vertical_2() {
+        let view_box = scale_to_fit(10., 100., 0.001, 100., 0., 1., 15., 1.);
+        let expected: Result<[f64; 4], Error> = Ok([-0.75, -7.5, 1.5, 15.]);
+
+        assert_eq!(view_box.unwrap(), expected.unwrap());
+    }
+    #[test]
+    fn should_scale_to_fit_horizontal_1() {
+        let view_box = scale_to_fit(100., 10., 0.001, 100., 0., 10., 5., 1.);
+        let expected: Result<[f64; 4], Error> = Ok([-25., -2.5, 50., 5.]);
+
+        assert_eq!(view_box.unwrap(), expected.unwrap());
+    }
+    #[test]
+    fn should_scale_to_fit_horizontal_2() {
+        let view_box = scale_to_fit(100., 10., 0.001, 100., 0., 5., 10., 1.);
+        let expected: Result<[f64; 4], Error> = Ok([-50., -5., 100., 10.]);
 
         assert_eq!(view_box.unwrap(), expected.unwrap());
     }
