@@ -2,6 +2,13 @@ use std::cmp::Ordering;
 use std::f64::consts::PI;
 use std::f64::consts::TAU;
 
+pub fn compute_coordinates(orig: (f64, f64), angle: f64, radius: f64) -> (f64, f64) {
+    let x = orig.0;
+    let y = orig.1;
+
+    (x + angle.cos() * radius, y + angle.sin() * radius)
+}
+
 pub fn compute_angle_from_section(section: i32, nb_sections: i32) -> f64 {
     let section = (nb_sections + (section % nb_sections)) % nb_sections;
     let nb_sections = nb_sections as f64;

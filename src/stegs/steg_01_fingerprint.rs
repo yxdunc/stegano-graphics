@@ -1,8 +1,12 @@
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
-use crate::geometry::radial::{compute_angle_from_section, is_between_circular_angles};
+use crate::geometry::radial::{
+    compute_angle_from_section, compute_coordinates, is_between_circular_angles,
+};
+use crate::geometry::Dimensions2D;
+use crate::stegs::Steg;
 use std::borrow::BorrowMut;
-use std::cmp::min;
+use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::f64::consts::TAU;
 use std::panic::resume_unwind;
@@ -28,9 +32,54 @@ pub struct Fingerprint {
     _max_radius: f64,
     _stroke_width: f64,
     _text: String,
+    _should_render_debug: bool,
     _encoded_text: Vec<i8>,
     _svg_document: Document,
     _position: (f64, f64),
+}
+
+impl Steg for Fingerprint {
+    fn set_text(mut self, text: &str) -> Self {
+        self._text = text.to_string();
+        self
+    }
+
+    fn set_render_debug(mut self, should_render_debug: bool) -> Self {
+        self._should_render_debug = should_render_debug;
+        self
+    }
+
+    fn get_stroke_width(&self) -> f64 {
+        self._stroke_width
+    }
+
+    fn get_shape_dimensions(&self) -> Dimensions2D {
+        let (mut min_x, mut min_y) = (f64::MIN, f64::MIN);
+        let (mut max_x, mut max_y) = (f64::MAX, f64::MAX);
+
+        for (section, layer) in self._sections_height.iter().enumerate() {
+            let radius = self._compute_layer_radius(*layer as f64);
+            let angle = compute_angle_from_section(section as i32, self._nb_sections as i32);
+
+            let (x, y) = compute_coordinates((0.0, 0.0), angle, radius);
+            min_x = min_x.min(x);
+            min_y = min_y.min(y);
+            max_x = max_x.max(x);
+            max_y = max_y.max(y);
+        }
+        Dimensions2D {
+            width: min_x.abs().max(max_x.abs()),
+            height: min_y.abs().max(max_y.abs()),
+        }
+    }
+
+    fn render(&mut self) {
+        self._render();
+    }
+
+    fn get_svg(&self) -> &Document {
+        &self._svg_document
+    }
 }
 
 impl Fingerprint {
@@ -45,16 +94,11 @@ impl Fingerprint {
             _max_radius: DEFAULT_MAX_RADIUS,
             _stroke_width: 1.,
             _text: "".to_string(),
+            _should_render_debug: false,
             _encoded_text: vec![],
             _svg_document: Document::new(Vec::new(), Some([-1000., -1000., 2000., 2000.])),
             _position: (0., 0.),
         }
-    }
-
-    // Setters
-    pub fn set_text(mut self, text: &str) -> Self {
-        self._text = text.to_string();
-        self
     }
 
     // getters
@@ -67,7 +111,7 @@ impl Fingerprint {
     }
 
     // Renderers
-    pub fn render(&mut self) -> String {
+    pub fn _render(&mut self) {
         let mut path = Path::new();
         let mut current_section: i8 = 0;
         let mut clockwise = true;
@@ -120,7 +164,6 @@ impl Fingerprint {
         self._svg_document.add_element(Box::new(path));
         self._svg_document
             .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
-        self._svg_document.render()
     }
 
     // Drawing methods

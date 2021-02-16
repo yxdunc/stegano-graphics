@@ -16,6 +16,9 @@ use svg_composer::Document;
 // encoder
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
+use crate::geometry::Dimensions2D;
+use crate::stegs::Steg;
+use std::error::Error;
 
 static DEFAULT_NB_SECTIONS: i8 = 26;
 static DEFAULT_MAX_RADIUS: f64 = 1000.;
@@ -28,6 +31,7 @@ pub struct Spiral {
     _max_radius: f64,
     _stroke_width: f64,
     _text: String,
+    _should_render_debug: bool,
     _encoded_text: Vec<i8>,
     _svg_document: Document,
     _position: (f64, f64),
@@ -45,6 +49,7 @@ impl Spiral {
             _nose_size,
             _max_radius: DEFAULT_MAX_RADIUS,
             _stroke_width: 1.,
+            _should_render_debug: false,
             _text: "".to_string(),
             _encoded_text: vec![],
             _svg_document: Document::new(Vec::new(), Some([-1000., -1000., 2000., 2000.])),
@@ -54,17 +59,13 @@ impl Spiral {
     }
 
     // Setters
-    pub fn set_text(mut self, text: &str) -> Self {
-        self._text = text.to_string();
-        self
-    }
     pub fn draw_explainer(mut self, v: bool) -> Self {
         self._draw_explainer = v;
         self
     }
 
     // Renderer
-    pub fn render(&mut self) -> String {
+    pub fn _render(&mut self) {
         let section_angular_len = (2. * PI / self._nb_sections as f64);
         let mut path = Path::new();
         let mut current_angle: f64 = 0.;
@@ -107,18 +108,16 @@ impl Spiral {
             clockwise = !clockwise;
         }
 
-        self._svg_document
-            .add_elements(vec![
-                Box::new(
-                    Rectangle::new()
-                        .set_pos((-1000., -1000.))
-                        .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                        .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-                ),
-                Box::new(path),
-                Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
-            ])
-            .render()
+        self._svg_document.add_elements(vec![
+            Box::new(
+                Rectangle::new()
+                    .set_pos((-1000., -1000.))
+                    .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+                    .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+            ),
+            Box::new(path),
+            Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
+        ]);
     }
 
     // Drawing methods
@@ -197,5 +196,37 @@ impl Spiral {
     fn _compute_stroke_width(&self) -> f64 {
         // TODO
         20.
+    }
+}
+
+impl Steg for Spiral {
+    fn set_text(mut self, text: &str) -> Self {
+        self._text = text.to_string();
+        self
+    }
+
+    fn set_render_debug(mut self, should_render_debug: bool) -> Self {
+        self._should_render_debug = should_render_debug;
+        self
+    }
+
+    fn get_stroke_width(&self) -> f64 {
+        self._stroke_width
+    }
+
+    fn get_shape_dimensions(&self) -> Dimensions2D {
+        let radius = self._text.len() as f64 * self._nose_size + self._inner_circle_radius;
+        Dimensions2D {
+            width: radius,
+            height: radius,
+        }
+    }
+
+    fn render(&mut self) {
+        self._render();
+    }
+
+    fn get_svg(&self) -> &Document {
+        &self._svg_document
     }
 }

@@ -26,3 +26,8 @@ impl std::error::Error for Error {
         Some(self)
     }
 }
+
+pub struct Dimensions2D {
+    pub width: f64,
+    pub height: f64,
+}

@@ -2,7 +2,11 @@ pub mod steg_00_spiral;
 pub mod steg_01_fingerprint;
 
 use crate::geometry::transforms::scale_to_fit;
+use crate::geometry::Dimensions2D;
+use std::borrow::BorrowMut;
 use std::fmt::Display;
+use std::ops::Deref;
+use svg_composer::Document;
 use tiny_skia::{Pixmap, PixmapMut};
 use usvg;
 use usvg::ShapeRendering;
@@ -41,10 +45,10 @@ pub trait Steg {
     fn set_text(self, text: &str) -> Self;
     fn set_render_debug(self, should_render_debug: bool) -> Self;
     fn get_stroke_width(&self) -> f64;
-    fn get_shape_width(&self) -> f64;
-    fn get_shape_height(&self) -> f64;
-    fn get_svg(&self) -> Result<svg_composer::Document, Box<dyn std::error::Error>>;
-    fn render_png(
+    fn get_shape_dimensions(&self) -> Dimensions2D;
+    fn render(&mut self);
+    fn get_svg(&self) -> &svg_composer::Document;
+    fn get_pixmap(
         &self,
         width: u32,
         height: u32,
@@ -55,15 +59,17 @@ pub trait Steg {
     where
         Self: Sized,
     {
-        let mut svg_document = self.get_svg()?;
+        let mut svg_document: &Document = self.get_svg();
+        let mut svg_document: Document = svg_document.clone();
+        let shape_dimensions = self.get_shape_dimensions();
         let view_box = scale_to_fit(
             width as f32,
             height as f32,
             min_stroke as f32,
             max_stroke as f32,
             margin as f32,
-            self.get_shape_width() as f32,
-            self.get_shape_height() as f32,
+            shape_dimensions.width as f32,
+            shape_dimensions.height as f32,
             self.get_stroke_width() as f32,
         )?;
 

@@ -1,5 +1,6 @@
 use stegs::stegs::steg_00_spiral::Spiral;
 use stegs::stegs::steg_01_fingerprint::Fingerprint;
+use stegs::stegs::Steg;
 
 fn main() {
     // let message = "rmrmbzoq";
@@ -10,10 +11,11 @@ fn main() {
     // let message = "welcome you smart";
     // let message = "the game";
 
-    let message = "hello world";
+    // let message = "hello world";
+    let message = "alice";
 
-    // let mut fp = Fingerprint::new().set_text(message);
-    let mut fp = Spiral::new().set_text(message);
-
-    println!("{}", fp.render());
+    let mut steg = Fingerprint::new().set_text(message);
+    // let mut steg = Spiral::new().set_text(message);
+    steg._render();
+    println!("{}", steg.get_svg().render());
 }
