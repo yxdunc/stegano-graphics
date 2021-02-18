@@ -77,8 +77,8 @@ impl Spiral {
             .set_classes(vec![
                 ClassName::from_string("main_path".to_string()).unwrap()
             ])
-            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
+            .set_fill(Paint::new_empty())
+            .set_stroke(Paint::from_color(Color::from_rgb(245, 194, 102)))
             .set_stroke_width(Size::from_length(self._compute_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round)
             .add_commands(vec![Box::new(MoveTo {

@@ -55,6 +55,7 @@ pub trait Steg {
         min_stroke: u32,
         max_stroke: u32,
         margin: u32,
+        antialiasing: bool,
     ) -> Result<Pixmap, Box<dyn std::error::Error>>
     where
         Self: Sized,
@@ -73,6 +74,8 @@ pub trait Steg {
             self.get_stroke_width() as f32,
         )?;
 
+        eprintln!("view box: {:?}", view_box);
+
         svg_document.view_box = Some(view_box as [f32; 4]);
 
         let svg_str = svg_document.render();
@@ -83,7 +86,11 @@ pub trait Steg {
             font_family: "Times New Roman".to_string(),
             font_size: 12.0,
             languages: vec!["en".to_string()],
-            shape_rendering: ShapeRendering::CrispEdges,
+            shape_rendering: if antialiasing {
+                ShapeRendering::GeometricPrecision
+            } else {
+                ShapeRendering::CrispEdges
+            },
             text_rendering: Default::default(),
             image_rendering: Default::default(),
             keep_named_groups: false,

@@ -54,8 +54,8 @@ impl Steg for Fingerprint {
     }
 
     fn get_shape_dimensions(&self) -> Dimensions2D {
-        let (mut min_x, mut min_y) = (f64::MIN, f64::MIN);
-        let (mut max_x, mut max_y) = (f64::MAX, f64::MAX);
+        let (mut min_x, mut min_y) = (f64::MAX, f64::MAX);
+        let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for (section, layer) in self._sections_height.iter().enumerate() {
             let radius = self._compute_layer_radius(*layer as f64);
@@ -122,8 +122,8 @@ impl Fingerprint {
             .set_classes(vec![
                 ClassName::from_string("main_path".to_string()).unwrap()
             ])
-            .set_fill(Paint::from_color(Color::from_rgba(0, 0, 0, 0)))
-            .set_stroke(Paint::from_color(Color::from_rgba(245, 194, 102, 255)))
+            .set_fill(Paint::new_empty())
+            .set_stroke(Paint::from_color(Color::from_rgb(245, 194, 102)))
             .set_stroke_width(Size::from_length(self._compute_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round);
 
@@ -153,17 +153,19 @@ impl Fingerprint {
             clockwise = !clockwise;
         }
 
-        let rays: Vec<Box<dyn Element>> = self._generate_rays();
-        self._svg_document.add_element(Box::new(
-            Rectangle::new()
-                .set_pos((-1000., -1000.))
-                .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-        ));
-        self._svg_document.add_elements(rays);
+        // self._svg_document.add_element(Box::new(
+        //     Rectangle::new()
+        //         .set_pos((-1000., -1000.))
+        //         .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+        //         .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+        // ));
+        if self._should_render_debug {
+            let rays: Vec<Box<dyn Element>> = self._generate_rays();
+            self._svg_document.add_elements(rays);
+            self._svg_document
+                .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
+        }
         self._svg_document.add_element(Box::new(path));
-        self._svg_document
-            .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
     }
 
     // Drawing methods

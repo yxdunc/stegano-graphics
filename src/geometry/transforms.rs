@@ -25,6 +25,14 @@ pub fn scale_to_fit(
     shape_height: f32,
     shape_stroke_width: f32,
 ) -> Result<[f32; 4], Error> {
+    eprintln!("width: {}", width);
+    eprintln!("height: {}", height);
+    eprintln!("min_stroke: {}", min_stroke);
+    eprintln!("max_stroke: {}", max_stroke);
+    eprintln!("margin: {}", margin);
+    eprintln!("shape_width: {}", shape_width);
+    eprintln!("shape_height: {}", shape_height);
+    eprintln!("shape_stroke_width: {}", shape_stroke_width);
     // account for margin
     let margin_ratio;
     let margin_ratio_width = 1. / ((width - margin * 2.) / width);
