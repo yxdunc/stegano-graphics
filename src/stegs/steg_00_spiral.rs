@@ -210,12 +210,17 @@ impl Steg for Spiral {
         self
     }
 
+    fn get_render_debug(&self) -> bool {
+        self._should_render_debug
+    }
+
     fn get_stroke_width(&self) -> f64 {
         self._stroke_width
     }
 
     fn get_shape_dimensions(&self) -> Dimensions2D {
         let radius = self._text.len() as f64 * self._nose_size + self._inner_circle_radius;
+        let radius = radius * 2.0;
         Dimensions2D {
             width: radius,
             height: radius,

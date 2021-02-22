@@ -49,6 +49,10 @@ impl Steg for Fingerprint {
         self
     }
 
+    fn get_render_debug(&self) -> bool {
+        self._should_render_debug
+    }
+
     fn get_stroke_width(&self) -> f64 {
         self._stroke_width
     }
@@ -58,7 +62,8 @@ impl Steg for Fingerprint {
         let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for (section, layer) in self._sections_height.iter().enumerate() {
-            let radius = self._compute_layer_radius(*layer as f64);
+            let layer = (layer - 1) as f64;
+            let radius = self._compute_layer_radius(layer as f64) + self.get_stroke_width() / 2.;
             let angle = compute_angle_from_section(section as i32, self._nb_sections as i32);
 
             let (x, y) = compute_coordinates((0.0, 0.0), angle, radius);
@@ -68,8 +73,8 @@ impl Steg for Fingerprint {
             max_y = max_y.max(y);
         }
         Dimensions2D {
-            width: min_x.abs().max(max_x.abs()),
-            height: min_y.abs().max(max_y.abs()),
+            width: min_x.abs().max(max_x.abs()) * 2.,
+            height: min_y.abs().max(max_y.abs()) * 2.,
         }
     }
 
@@ -92,7 +97,7 @@ impl Fingerprint {
             _inner_circle_radius: Self::_compute_inner_circle_radius(_nb_sections, _nose_size),
             _nose_size,
             _max_radius: DEFAULT_MAX_RADIUS,
-            _stroke_width: 1.,
+            _stroke_width: 20.,
             _text: "".to_string(),
             _should_render_debug: false,
             _encoded_text: vec![],
@@ -124,7 +129,7 @@ impl Fingerprint {
             ])
             .set_fill(Paint::new_empty())
             .set_stroke(Paint::from_color(Color::from_rgb(245, 194, 102)))
-            .set_stroke_width(Size::from_length(self._compute_stroke_width()))
+            .set_stroke_width(Size::from_length(self.get_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round);
 
         if let Some(first_char) = self._encoded_text.get(0) {
@@ -884,14 +889,10 @@ impl Fingerprint {
         self._compute_layer_radius(self._sections_height[section as usize] as f64)
     }
     fn _compute_stroke_angular_size(&self, distance_to_center: f64) -> f64 {
-        self._compute_stroke_width() / 2. / distance_to_center
+        self.get_stroke_width() / 2. / distance_to_center
     }
     fn _compute_inner_circle_radius(nb_sections: i8, nose_size: f64) -> f64 {
         (nb_sections as f64 * nose_size * 1.5) / (2. * PI)
-    }
-    fn _compute_stroke_width(&self) -> f64 {
-        // TODO
-        20.
     }
     fn _compute_nose_angular_size(&self, distance_to_center: f64) -> f64 {
         self._nose_size / 2. / distance_to_center

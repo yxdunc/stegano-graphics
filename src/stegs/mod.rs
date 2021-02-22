@@ -6,6 +6,9 @@ use crate::geometry::Dimensions2D;
 use std::borrow::BorrowMut;
 use std::fmt::Display;
 use std::ops::Deref;
+use svg_composer::element::attributes::{Color, ColorName, Paint, Size};
+use svg_composer::element::rect::Rectangle;
+use svg_composer::element::Element;
 use svg_composer::Document;
 use tiny_skia::{Pixmap, PixmapMut};
 use usvg;
@@ -44,6 +47,7 @@ impl Display for Error {
 pub trait Steg {
     fn set_text(self, text: &str) -> Self;
     fn set_render_debug(self, should_render_debug: bool) -> Self;
+    fn get_render_debug(&self) -> bool;
     fn get_stroke_width(&self) -> f64;
     fn get_shape_dimensions(&self) -> Dimensions2D;
     fn render(&mut self);
@@ -74,7 +78,20 @@ pub trait Steg {
             self.get_stroke_width() as f32,
         )?;
 
-        eprintln!("view box: {:?}", view_box);
+        if self.get_render_debug() {
+            eprintln!("view box: {:?}", view_box);
+            svg_document.add_element(Box::new(
+                Rectangle::new()
+                    .set_pos((view_box[0] as f64, view_box[1] as f64))
+                    .set_size(
+                        Size::from_length(view_box[2] as f64),
+                        Size::from_length(view_box[3] as f64),
+                    )
+                    .set_stroke(Paint::from_color(Color::from_name(ColorName::Black)))
+                    .set_fill(Paint::new_empty())
+                    .set_stroke_width(Size::from_length(10.)),
+            ));
+        }
 
         svg_document.view_box = Some(view_box as [f32; 4]);
 
