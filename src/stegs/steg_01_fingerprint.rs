@@ -158,12 +158,12 @@ impl Fingerprint {
             clockwise = !clockwise;
         }
 
-        // self._svg_document.add_element(Box::new(
-        //     Rectangle::new()
-        //         .set_pos((-1000., -1000.))
-        //         .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-        //         .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
-        // ));
+        self._svg_document.add_element(Box::new(
+            Rectangle::new()
+                .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
+                .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
+                .set_fill(Paint::from_color(Color::from_rgb(28, 53, 63))),
+        ));
         if self._should_render_debug {
             let rays: Vec<Box<dyn Element>> = self._generate_rays();
             self._svg_document.add_elements(rays);

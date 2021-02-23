@@ -111,9 +111,9 @@ impl Spiral {
         self._svg_document.add_elements(vec![
             Box::new(
                 Rectangle::new()
-                    .set_pos((-1000., -1000.))
+                    .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
                     .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                    .set_fill(Paint::from_color(Color::from_rgba(28, 53, 63, 255))),
+                    .set_fill(Paint::from_color(Color::from_rgb(255, 0, 0))),
             ),
             Box::new(path),
             Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
