@@ -1,8 +1,10 @@
+pub mod color_palette;
 pub mod steg_00_spiral;
 pub mod steg_01_fingerprint;
 
 use crate::geometry::transforms::scale_to_fit;
 use crate::geometry::Dimensions2D;
+use crate::stegs::color_palette::Palette;
 use std::borrow::BorrowMut;
 use std::fmt::Display;
 use std::ops::Deref;
@@ -13,11 +15,6 @@ use svg_composer::Document;
 use tiny_skia::{Pixmap, PixmapMut};
 use usvg;
 use usvg::ShapeRendering;
-
-// render
-// render_debug
-// get bounding sides
-// get stroke size
 
 #[derive(Debug)]
 pub struct Error {
@@ -46,6 +43,7 @@ impl Display for Error {
 
 pub trait Steg {
     fn set_text(self, text: &str) -> Self;
+    fn set_color_palette(self, color_palette: Palette) -> Self;
     fn set_render_debug(self, should_render_debug: bool) -> Self;
     fn get_render_debug(&self) -> bool;
     fn get_stroke_width(&self) -> f64;

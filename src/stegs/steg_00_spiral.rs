@@ -17,6 +17,7 @@ use svg_composer::Document;
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
 use crate::geometry::Dimensions2D;
+use crate::stegs::color_palette::Palette;
 use crate::stegs::Steg;
 use std::error::Error;
 
@@ -36,6 +37,7 @@ pub struct Spiral {
     _svg_document: Document,
     _position: (f64, f64),
     _draw_explainer: bool,
+    _color_palette: Palette,
 }
 
 impl Spiral {
@@ -55,6 +57,7 @@ impl Spiral {
             _svg_document: Document::new(Vec::new(), Some([-1000., -1000., 2000., 2000.])),
             _position: (0., 0.),
             _draw_explainer: false,
+            _color_palette: Palette::default(),
         }
     }
 
@@ -202,6 +205,11 @@ impl Spiral {
 impl Steg for Spiral {
     fn set_text(mut self, text: &str) -> Self {
         self._text = text.to_string();
+        self
+    }
+
+    fn set_color_palette(mut self, color_palette: Palette) -> Self {
+        self._color_palette = color_palette;
         self
     }
 

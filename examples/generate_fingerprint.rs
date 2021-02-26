@@ -1,4 +1,5 @@
 use std::path::Path;
+use stegs::stegs::color_palette::Palette;
 use stegs::stegs::steg_00_spiral::Spiral;
 use stegs::stegs::steg_01_fingerprint::Fingerprint;
 use stegs::stegs::Steg;
@@ -15,13 +16,15 @@ fn main() {
     // let message = "hello world";
     let message = "james";
 
-    // let mut steg = Fingerprint::new().set_text(message);
-    let mut steg = Spiral::new().set_text(message);
+    let mut steg = Fingerprint::new()
+        .set_text(message)
+        .set_color_palette(Palette::default_stegano());
+    // let mut steg = Spiral::new().set_text(message);
 
-    steg = steg.set_render_debug(true);
+    // steg = steg.set_render_debug(true);
     steg.render();
     println!("{}", steg.get_svg().render());
-    steg.get_pixmap(1600, 1600, 1, 30, 0, true)
+    steg.get_pixmap(9000, 9000, 1, 5000, 0, false)
         .unwrap()
         .save_png(Path::new("/tmp/steg.png"));
 }

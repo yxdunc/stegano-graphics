@@ -4,8 +4,9 @@ use crate::geometry::radial::{
     compute_angle_from_section, compute_coordinates, is_between_circular_angles,
 };
 use crate::geometry::Dimensions2D;
+use crate::stegs::color_palette::Palette;
 use crate::stegs::Steg;
-use std::borrow::BorrowMut;
+use std::borrow::{Borrow, BorrowMut};
 use std::cmp::{max, min};
 use std::f64::consts::PI;
 use std::f64::consts::TAU;
@@ -36,11 +37,18 @@ pub struct Fingerprint {
     _encoded_text: Vec<i8>,
     _svg_document: Document,
     _position: (f64, f64),
+    _color_palette: Palette,
 }
 
 impl Steg for Fingerprint {
     fn set_text(mut self, text: &str) -> Self {
         self._text = text.to_string();
+        self
+    }
+
+    fn set_color_palette(mut self, color_palette: Palette) -> Self {
+        self._color_palette = color_palette;
+
         self
     }
 
@@ -62,15 +70,22 @@ impl Steg for Fingerprint {
         let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for (section, layer) in self._sections_height.iter().enumerate() {
-            let layer = (layer - 1) as f64;
+            let layer = max(layer - 1, 0) as f64;
             let radius = self._compute_layer_radius(layer as f64) + self.get_stroke_width() / 2.;
-            let angle = compute_angle_from_section(section as i32, self._nb_sections as i32);
+            let angle = compute_angle_from_section(section as i32, self._nb_sections as i32 * 2);
 
             let (x, y) = compute_coordinates((0.0, 0.0), angle, radius);
             min_x = min_x.min(x);
             min_y = min_y.min(y);
             max_x = max_x.max(x);
             max_y = max_y.max(y);
+            eprintln!(
+                "section: {}, angle: {}, layer: {}, radius: {}, nb_section: {}",
+                section, angle, layer, radius, self._nb_sections
+            );
+            eprintln!("coord: [{}, {}]", x, y);
+            eprintln!("min x: {} y: {}", min_x, min_y);
+            eprintln!("max x: {} y: {}", max_x, max_y);
         }
         Dimensions2D {
             width: min_x.abs().max(max_x.abs()) * 2.,
@@ -103,6 +118,7 @@ impl Fingerprint {
             _encoded_text: vec![],
             _svg_document: Document::new(Vec::new(), Some([-1000., -1000., 2000., 2000.])),
             _position: (0., 0.),
+            _color_palette: Palette::default(),
         }
     }
 
@@ -128,7 +144,7 @@ impl Fingerprint {
                 ClassName::from_string("main_path".to_string()).unwrap()
             ])
             .set_fill(Paint::new_empty())
-            .set_stroke(Paint::from_color(Color::from_rgb(245, 194, 102)))
+            .set_stroke(Paint::from_color(self._color_palette.primary))
             .set_stroke_width(Size::from_length(self.get_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round);
 
@@ -162,7 +178,7 @@ impl Fingerprint {
             Rectangle::new()
                 .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
                 .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                .set_fill(Paint::from_color(Color::from_rgb(28, 53, 63))),
+                .set_fill(Paint::from_color(self._color_palette.background_dark)),
         ));
         if self._should_render_debug {
             let rays: Vec<Box<dyn Element>> = self._generate_rays();
@@ -1020,14 +1036,14 @@ impl Fingerprint {
                     .set_point_1((0.0, 0.0))
                     .set_point_2(point_2)
                     .set_stroke_width(Size::from_length(5.))
-                    .set_stroke(Paint::from_color(Color::from_name(ColorName::Olive))),
+                    .set_stroke(Paint::from_color(self._color_palette.warning_0)),
             ));
             result.push(Box::new(
                 Line::new()
                     .set_point_1((0.0, 0.0))
                     .set_point_2(height_pos)
                     .set_stroke_width(Size::from_length(10.))
-                    .set_stroke(Paint::from_color(Color::from_name(ColorName::Aqua))),
+                    .set_stroke(Paint::from_color(self._color_palette.warning_1)),
             ));
         }
         result
