@@ -70,7 +70,7 @@ impl Steg for Fingerprint {
         let (mut max_x, mut max_y) = (f64::MIN, f64::MIN);
 
         for (section, layer) in self._sections_height.iter().enumerate() {
-            let layer = max(layer - 1, 0) as f64;
+            let layer = max(*layer, 0) as f64;
             let radius = self._compute_layer_radius(layer as f64) + self.get_stroke_width() / 2.;
             let angle = compute_angle_from_section(section as i32, self._nb_sections as i32 * 2);
 

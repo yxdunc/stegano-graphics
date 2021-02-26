@@ -14,7 +14,7 @@ fn main() {
     // let message = "the game";
 
     // let message = "hello world";
-    let message = "james";
+    let message = "ba";
 
     let mut steg = Fingerprint::new()
         .set_text(message)
@@ -24,7 +24,7 @@ fn main() {
     // steg = steg.set_render_debug(true);
     steg.render();
     println!("{}", steg.get_svg().render());
-    steg.get_pixmap(9000, 9000, 1, 5000, 0, false)
+    steg.get_pixmap(4200, 6000, 10, 60, 0, true)
         .unwrap()
         .save_png(Path::new("/tmp/steg.png"));
 }

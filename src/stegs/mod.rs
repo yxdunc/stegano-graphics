@@ -97,7 +97,7 @@ pub trait Steg {
         let svg_str = svg_str.as_str();
         let rendering_options: usvg::Options = usvg::Options {
             resources_dir: None,
-            dpi: 96.0,
+            dpi: 150.0,
             font_family: "Times New Roman".to_string(),
             font_size: 12.0,
             languages: vec!["en".to_string()],

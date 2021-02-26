@@ -68,17 +68,26 @@ pub fn scale_to_fit(
     // compute adjustment for stroke
     let vb_stroke = shape_stroke_width * shape_scalar;
     eprintln!("vb_stroke: {}, view_box_scalar {}", vb_stroke, shape_scalar);
+    eprintln!(
+        "shape_width: {}, shape_height {}",
+        corrected_shape_width, corrected_shape_height
+    );
     match vb_stroke {
         s if s < min_stroke => {
             return Err(Error::new("Can't fit shape while respecting min stroke"));
         }
         s if s > max_stroke => {
             let stroke_correction = vb_stroke / max_stroke;
-            corrected_shape_width = shape_width * stroke_correction;
-            corrected_shape_height = shape_height * stroke_correction;
+            corrected_shape_width = corrected_shape_width * stroke_correction;
+            corrected_shape_height = corrected_shape_height * stroke_correction;
         }
         _ => {}
     };
+
+    eprintln!(
+        "corrected_width: {}, corrected_height {}",
+        corrected_shape_width, corrected_shape_height
+    );
 
     // correct margin
     corrected_shape_width *= margin_ratio;
