@@ -576,7 +576,6 @@ impl Fingerprint {
                     if orig_section_height_minus_3 - 1 > orig_section_height_minus_2 {
                         eprintln!("down before up to nose");
                         compressed_arc.pop();
-                        compressed_arc.pop();
                         height_transition.remove(0);
                         height_transition.remove(0);
                         let section_angle_delta =
