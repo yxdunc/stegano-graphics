@@ -3,6 +3,7 @@ use stegs::stegs::color_palette::Palette;
 use stegs::stegs::steg_00_spiral::Spiral;
 use stegs::stegs::steg_01_fingerprint::Fingerprint;
 use stegs::stegs::Steg;
+use svg_composer::element::attributes::{Color, ColorName, Paint};
 
 fn main() {
     // let message = "rmrmbzoq";
@@ -14,17 +15,28 @@ fn main() {
     // let message = "the game";
 
     // let message = "hello world";
-    let message = "ba";
+    // let message = "squares";
+    // let message = "two rad";
+    // let message = "pi scale";
+    let message = "steganographics";
+
+    // let message = "crates";
+
+    let mut transparent_palette = Palette::default_stegano();
+    transparent_palette.background_dark = Paint::new_empty();
 
     let mut steg = Fingerprint::new()
         .set_text(message)
-        .set_color_palette(Palette::default_stegano());
-    // let mut steg = Spiral::new().set_text(message);
+        // .set_color_palette(Palette::default_stegano());
+        .set_color_palette(transparent_palette);
+    // let mut steg = Spiral::new()
+    //     .set_text(message)
+    //     .set_color_palette(Palette::default_stegano());
 
     // steg = steg.set_render_debug(true);
     steg.render();
     println!("{}", steg.get_svg().render());
-    steg.get_pixmap(4200, 6000, 10, 60, 0, true)
+    steg.get_pixmap(1000, 1000, 0, 2, 0, true)
         .unwrap()
         .save_png(Path::new("/tmp/steg.png"));
 }

@@ -144,7 +144,7 @@ impl Fingerprint {
                 ClassName::from_string("main_path".to_string()).unwrap()
             ])
             .set_fill(Paint::new_empty())
-            .set_stroke(Paint::from_color(self._color_palette.primary))
+            .set_stroke(self._color_palette.primary)
             .set_stroke_width(Size::from_length(self.get_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round);
 
@@ -178,7 +178,7 @@ impl Fingerprint {
             Rectangle::new()
                 .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
                 .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                .set_fill(Paint::from_color(self._color_palette.background_dark)),
+                .set_fill(self._color_palette.background_dark),
         ));
         if self._should_render_debug {
             let rays: Vec<Box<dyn Element>> = self._generate_rays();
@@ -1035,14 +1035,14 @@ impl Fingerprint {
                     .set_point_1((0.0, 0.0))
                     .set_point_2(point_2)
                     .set_stroke_width(Size::from_length(5.))
-                    .set_stroke(Paint::from_color(self._color_palette.warning_0)),
+                    .set_stroke(self._color_palette.warning_0),
             ));
             result.push(Box::new(
                 Line::new()
                     .set_point_1((0.0, 0.0))
                     .set_point_2(height_pos)
                     .set_stroke_width(Size::from_length(10.))
-                    .set_stroke(Paint::from_color(self._color_palette.warning_1)),
+                    .set_stroke(self._color_palette.warning_1),
             ));
         }
         result
