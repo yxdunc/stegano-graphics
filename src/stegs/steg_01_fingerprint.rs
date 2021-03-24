@@ -178,7 +178,7 @@ impl Fingerprint {
             Rectangle::new()
                 .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
                 .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                .set_fill(self._color_palette.background_dark),
+                .set_fill(self._color_palette.background_1),
         ));
         if self._should_render_debug {
             let rays: Vec<Box<dyn Element>> = self._generate_rays();
