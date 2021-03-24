@@ -81,7 +81,7 @@ impl Spiral {
                 ClassName::from_string("main_path".to_string()).unwrap()
             ])
             .set_fill(Paint::new_empty())
-            .set_stroke(Paint::from_color(Color::from_rgb(245, 194, 102)))
+            .set_stroke(self._color_palette.primary)
             .set_stroke_width(Size::from_length(self._compute_stroke_width()))
             .set_stroke_linecap(StrokeLineCap::Round)
             .add_commands(vec![Box::new(MoveTo {
@@ -116,11 +116,14 @@ impl Spiral {
                 Rectangle::new()
                     .set_pos((Size::from_percentage(-50.), Size::from_percentage(-50.)))
                     .set_size(Size::from_percentage(100.), Size::from_percentage(100.))
-                    .set_fill(Paint::from_color(Color::from_rgb(255, 0, 0))),
+                    .set_fill(self._color_palette.background_1),
             ),
             Box::new(path),
-            Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)),
         ]);
+        if self._should_render_debug {
+            self._svg_document
+                .add_element(Box::new(Circle::new().set_pos((0., 0.)).set_radius(10.)));
+        }
     }
 
     // Drawing methods
