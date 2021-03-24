@@ -42,9 +42,15 @@ impl Display for Error {
 }
 
 pub trait Steg {
-    fn set_text(self, text: &str) -> Self;
-    fn set_color_palette(self, color_palette: Palette) -> Self;
-    fn set_render_debug(self, should_render_debug: bool) -> Self;
+    fn set_text(self, text: &str) -> Self
+    where
+        Self: Sized;
+    fn set_color_palette(self, color_palette: Palette) -> Self
+    where
+        Self: Sized;
+    fn set_render_debug(self, should_render_debug: bool) -> Self
+    where
+        Self: Sized;
     fn get_render_debug(&self) -> bool;
     fn get_stroke_width(&self) -> f64;
     fn get_shape_dimensions(&self) -> Dimensions2D;
@@ -58,10 +64,7 @@ pub trait Steg {
         max_stroke: u32,
         margin: u32,
         antialiasing: bool,
-    ) -> Result<Pixmap, Box<dyn std::error::Error>>
-    where
-        Self: Sized,
-    {
+    ) -> Result<Pixmap, Box<dyn std::error::Error>> {
         let mut svg_document: &Document = self.get_svg();
         let mut svg_document: Document = svg_document.clone();
         let shape_dimensions = self.get_shape_dimensions();
