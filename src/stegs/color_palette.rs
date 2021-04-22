@@ -1,5 +1,6 @@
 use svg_composer::element::attributes::{Color, ColorName, Paint};
 
+#[derive(Debug)]
 pub struct Palette {
     pub primary: Paint,
     pub secondary: Paint,
@@ -24,12 +25,24 @@ impl Palette {
             error: Paint::from_color(Color::from_name(ColorName::Red)),
         }
     }
-    pub fn default_stegano() -> Self {
+    pub fn stegano_default() -> Self {
         Palette {
             primary: Paint::from_color(Color::from_rgb(245, 194, 102)), // yellow
             secondary: Paint::from_color(Color::from_rgb(178, 92, 34)), // brown
             background_0: Paint::from_color(Color::from_rgb(252, 226, 212)), // light pink
             background_1: Paint::from_color(Color::from_rgb(28, 53, 63)), // dark blue
+            whitish: Paint::from_color(Color::from_rgb(241, 241, 241)), //  white
+            warning_0: Paint::from_color(Color::from_name(ColorName::Olive)),
+            warning_1: Paint::from_color(Color::from_name(ColorName::Aqua)),
+            error: Paint::from_color(Color::from_name(ColorName::Fuchsia)),
+        }
+    }
+    pub fn stegano_variant() -> Self {
+        Palette {
+            primary: Paint::from_color(Color::from_rgb(178, 92, 34)), // brown
+            secondary: Paint::from_color(Color::from_rgb(245, 194, 102)), // yellow
+            background_0: Paint::from_color(Color::from_rgb(28, 53, 63)), // dark blue
+            background_1: Paint::from_color(Color::from_rgb(252, 226, 212)), // light pink
             whitish: Paint::from_color(Color::from_rgb(241, 241, 241)), //  white
             warning_0: Paint::from_color(Color::from_name(ColorName::Olive)),
             warning_1: Paint::from_color(Color::from_name(ColorName::Aqua)),
