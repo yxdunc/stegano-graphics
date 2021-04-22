@@ -1,3 +1,4 @@
+use std::io::Read;
 use std::path::Path;
 use stegs::stegs::color_palette::Palette;
 use stegs::stegs::steg_00_spiral::Spiral;
@@ -14,30 +15,30 @@ fn main() {
     // let message = "welcome you smart";
     // let message = "the game";
 
-    // let message = "hello world";
+    let message = "hello world";
     // let message = "squares";
     // let message = "two rad";
     // let message = "pi scale";
-    let message = "voxal";
-
     // let message = "crates";
 
-    let mut transparent_palette = Palette::default_stegano();
+    let mut transparent_palette = Palette::stegano_default();
     transparent_palette.background_1 = Paint::new_empty();
 
-    // let mut steg = Fingerprint::new()
-    // .set_text(message)
-    // .set_color_palette(Palette::default_stegano());
+    let mut steg = Fingerprint::new()
+        .set_text(message)
+        .set_color_palette(Palette::stegano_default());
     // .set_color_palette(transparent_palette);
     let mut steg = Spiral::new()
         .set_text(message)
-        .set_color_palette(Palette::default_stegano());
+        // .set_color_palette(Palette::stegano_variant());
+        .set_color_palette(Palette::stegano_default());
     // .set_color_palette(transparent_palette);
 
     // steg = steg.set_render_debug(true);
     steg.render();
     println!("{}", steg.get_svg().render());
-    steg.get_pixmap(1000, 1000, 0, 100, 0, true)
-        .unwrap()
-        .save_png(Path::new("/tmp/steg.png"));
+    let pixmap = steg.get_pixmap(1000, 1000, 10, 100, 0, true).unwrap();
+    // let raw_pixmap = pixmap.encode_png().unwrap();
+    // eprintln!("{:?}", raw_pixmap);
+    pixmap.save_png(Path::new("/tmp/steg.png"));
 }
