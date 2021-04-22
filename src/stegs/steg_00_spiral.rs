@@ -226,7 +226,7 @@ impl Steg for Spiral {
     }
 
     fn get_stroke_width(&self) -> f64 {
-        self._stroke_width
+        self._compute_stroke_width()
     }
 
     fn get_shape_dimensions(&self) -> Dimensions2D {
