@@ -19,7 +19,6 @@ use crate::encoder::simple_latin_symbols::CHAR_LIST;
 use crate::geometry::Dimensions2D;
 use crate::stegs::color_palette::Palette;
 use crate::stegs::Steg;
-use std::error::Error;
 
 static DEFAULT_NB_SECTIONS: i8 = 26;
 static DEFAULT_MAX_RADIUS: f64 = 1000.;

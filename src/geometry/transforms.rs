@@ -1,4 +1,4 @@
-use super::Error;
+use super::GeometryError;
 use std::fmt::Display;
 
 /// Generate to viewbox in the shape coordinate system that will make the shape scale to fit if
@@ -24,7 +24,7 @@ pub fn scale_to_fit(
     shape_width: f32,
     shape_height: f32,
     shape_stroke_width: f32,
-) -> Result<[f32; 4], Error> {
+) -> Result<[f32; 4], GeometryError> {
     eprintln!("width: {}", width);
     eprintln!("height: {}", height);
     eprintln!("min_stroke: {}", min_stroke);
@@ -41,7 +41,11 @@ pub fn scale_to_fit(
     let width = width - margin * 2.;
 
     if height <= 0. || width <= 0. {
-        return Err(Error::new("Margin bigger than width and/or height"));
+        return Err(GeometryError::MarginOutOfBound {
+            margin,
+            height,
+            width,
+        });
     }
 
     // compute conversion ratio based on vertical or horizontal overflow
@@ -78,22 +82,10 @@ pub fn scale_to_fit(
     );
     match vb_stroke {
         s if s < min_stroke => {
-            return Err(Error::new(
-                format!(
-                    "Can't fit shape while respecting min stroke\n\
-                    original shape: w: {}, h: {}, s: {}\n\
-                    fitted shape: w: {}, h: {}, s: {}\n\
-                    min stroke: {}",
-                    shape_width,
-                    shape_height,
-                    shape_stroke_width,
-                    width,
-                    height,
-                    vb_stroke,
-                    min_stroke
-                )
-                .as_str(),
-            ));
+            return Err(GeometryError::ScalingConstraintMinStroke {
+                min_stroke,
+                current_stroke: vb_stroke,
+            });
         }
         s if s > max_stroke => {
             let stroke_correction = vb_stroke / max_stroke;
@@ -147,7 +139,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit() {
             let view_box = scale_to_fit(10., 10., 1., 5., 0., 100., 100., 40.);
-            let expected: Result<[f32; 4], Error> = Ok([-50.0, -50.0, 100.0, 100.0]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-50.0, -50.0, 100.0, 100.0]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -155,7 +147,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_and_respect_max_stroke() {
             let view_box = scale_to_fit(10., 10., 1., 2., 0., 100., 100., 40.);
-            let expected: Result<[f32; 4], Error> = Ok([-100.0, -100.0, 200.0, 200.0]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-100.0, -100.0, 200.0, 200.0]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -163,7 +155,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_accounting_for_margin() {
             let view_box = scale_to_fit(10., 10., 1., 4., 2.5, 10., 10., 3.);
-            let expected: Result<[f32; 4], Error> = Ok([-10., -10., 20.0, 20.0]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-10., -10., 20.0, 20.0]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -171,7 +163,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_vertical_1() {
             let view_box = scale_to_fit(10., 100., 0.001, 100., 0., 10., 5., 1.);
-            let expected: Result<[f32; 4], Error> = Ok([-5., -50., 10., 100.]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-5., -50., 10., 100.]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -179,7 +171,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_vertical_2() {
             let view_box = scale_to_fit(10., 100., 0.001, 100., 0., 1., 15., 1.);
-            let expected: Result<[f32; 4], Error> = Ok([-0.75, -7.5, 1.5, 15.]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-0.75, -7.5, 1.5, 15.]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -187,7 +179,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_horizontal_1() {
             let view_box = scale_to_fit(100., 10., 0.001, 100., 0., 10., 5., 1.);
-            let expected: Result<[f32; 4], Error> = Ok([-25., -2.5, 50., 5.]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-25., -2.5, 50., 5.]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
@@ -195,7 +187,7 @@ mod tests {
         #[test]
         fn should_scale_to_fit_horizontal_2() {
             let view_box = scale_to_fit(100., 10., 0.001, 100., 0., 5., 10., 1.);
-            let expected: Result<[f32; 4], Error> = Ok([-50., -5., 100., 10.]);
+            let expected: Result<[f32; 4], GeometryError> = Ok([-50., -5., 100., 10.]);
 
             assert_eq!(view_box.unwrap(), expected.unwrap());
         }
