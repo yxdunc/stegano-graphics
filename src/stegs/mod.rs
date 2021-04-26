@@ -2,43 +2,48 @@ pub mod color_palette;
 pub mod steg_00_spiral;
 pub mod steg_01_fingerprint;
 
+// internal
 use crate::geometry::transforms::scale_to_fit;
-use crate::geometry::Dimensions2D;
+use crate::geometry::{Dimensions2D, GeometryError};
 use crate::stegs::color_palette::Palette;
-use std::borrow::BorrowMut;
-use std::fmt::Display;
-use std::ops::Deref;
+
+// svg composer
 use svg_composer::element::attributes::{Color, ColorName, Paint, Size};
 use svg_composer::element::rect::Rectangle;
 use svg_composer::element::Element;
 use svg_composer::Document;
+
+// std
+use std::borrow::BorrowMut;
+use std::fmt::Display;
+use std::ops::Deref;
+
+// error
+use thiserror::Error;
+
+// svg rendering
 use tiny_skia::{Pixmap, PixmapMut};
 use usvg;
 use usvg::ShapeRendering;
 
-#[derive(Debug)]
-pub struct Error {
-    message: String,
-}
-
-impl Error {
-    fn new(message: &str) -> Self {
-        Error {
-            message: message.to_string(),
-        }
-    }
-}
-
-impl std::error::Error for Error {
-    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
-        Some(self)
-    }
-}
-
-impl Display for Error {
-    fn fmt(&self, f: &mut ::std::fmt::Formatter) -> Result<(), ::std::fmt::Error> {
-        f.write_str(self.message.as_str())
-    }
+#[derive(Error, Debug)]
+pub enum StegError {
+    #[error("Couldn't allocate pixmap")]
+    PixmapAllocation,
+    #[error("Error occurred during rendering of SVG to pixmap")]
+    PixmapRendering,
+    #[error("{source}")]
+    GeometryError {
+        #[from]
+        source: GeometryError,
+    },
+    #[error("{source}")]
+    USVGError {
+        #[from]
+        source: usvg::Error,
+    },
+    #[error("unknown steg error")]
+    Unknown,
 }
 
 pub trait Steg {
@@ -64,7 +69,7 @@ pub trait Steg {
         max_stroke: u32,
         margin: u32,
         antialiasing: bool,
-    ) -> Result<Pixmap, Box<dyn std::error::Error>> {
+    ) -> Result<Pixmap, StegError> {
         let mut svg_document: &Document = self.get_svg();
         let mut svg_document: Document = svg_document.clone();
         let shape_dimensions = self.get_shape_dimensions();
@@ -77,7 +82,8 @@ pub trait Steg {
             shape_dimensions.width as f32,
             shape_dimensions.height as f32,
             self.get_stroke_width() as f32,
-        )?;
+        )
+        .map_err(|err| StegError::GeometryError { source: err })?;
 
         if self.get_render_debug() {
             eprintln!("view box: {:?}", view_box);
@@ -115,12 +121,13 @@ pub trait Steg {
             fontdb: fontdb::Database::new(),
         };
         let mut result_pixmap: Pixmap =
-            Pixmap::new(width, height).ok_or(Error::new("Couldn't allocate pixmap..."))?;
-        let svg_tree = usvg::Tree::from_str(svg_str, &rendering_options)?;
+            Pixmap::new(width, height).ok_or(StegError::PixmapAllocation)?;
+        let svg_tree = usvg::Tree::from_str(svg_str, &rendering_options)
+            .map_err(|err| StegError::USVGError { source: err })?;
 
         // height will be deduced from the scaled view_box
         match resvg::render(&svg_tree, usvg::FitTo::Width(width), result_pixmap.as_mut()) {
-            None => Err(Box::new(Error::new("Couldn't render svg"))),
+            None => Err(StegError::PixmapRendering),
             Some(_) => Ok(result_pixmap),
         }
     }
