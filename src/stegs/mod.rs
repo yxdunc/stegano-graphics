@@ -46,6 +46,16 @@ pub enum StegError {
     Unknown,
 }
 
+pub struct RenderSpecs {
+    pub antialiasing: bool,
+    pub transparent_background: bool,
+    pub max_stroke: f32,
+    pub min_stroke: f32,
+    pub width: f32,
+    pub height: f32,
+    pub margin: f32,
+}
+
 pub trait Steg {
     fn set_text(self, text: &str) -> Self
     where
@@ -61,24 +71,16 @@ pub trait Steg {
     fn get_shape_dimensions(&self) -> Dimensions2D;
     fn render(&mut self);
     fn get_svg(&self) -> &svg_composer::Document;
-    fn get_pixmap(
-        &self,
-        width: u32,
-        height: u32,
-        min_stroke: u32,
-        max_stroke: u32,
-        margin: u32,
-        antialiasing: bool,
-    ) -> Result<Pixmap, StegError> {
+    fn get_pixmap(&self, pixmap_specs: RenderSpecs) -> Result<Pixmap, StegError> {
         let mut svg_document: &Document = self.get_svg();
         let mut svg_document: Document = svg_document.clone();
         let shape_dimensions = self.get_shape_dimensions();
         let view_box = scale_to_fit(
-            width as f32,
-            height as f32,
-            min_stroke as f32,
-            max_stroke as f32,
-            margin as f32,
+            pixmap_specs.width as f32,
+            pixmap_specs.height as f32,
+            pixmap_specs.min_stroke as f32,
+            pixmap_specs.max_stroke as f32,
+            pixmap_specs.margin as f32,
             shape_dimensions.width as f32,
             shape_dimensions.height as f32,
             self.get_stroke_width() as f32,
@@ -110,7 +112,7 @@ pub trait Steg {
             font_family: "Times New Roman".to_string(),
             font_size: 12.0,
             languages: vec!["en".to_string()],
-            shape_rendering: if antialiasing {
+            shape_rendering: if pixmap_specs.antialiasing {
                 ShapeRendering::GeometricPrecision
             } else {
                 ShapeRendering::CrispEdges
@@ -120,13 +122,20 @@ pub trait Steg {
             keep_named_groups: false,
             fontdb: fontdb::Database::new(),
         };
-        let mut result_pixmap: Pixmap =
-            Pixmap::new(width, height).ok_or(StegError::PixmapAllocation)?;
+        let mut result_pixmap: Pixmap = Pixmap::new(
+            pixmap_specs.width.floor() as u32,
+            pixmap_specs.height.floor() as u32,
+        )
+        .ok_or(StegError::PixmapAllocation)?;
         let svg_tree = usvg::Tree::from_str(svg_str, &rendering_options)
             .map_err(|err| StegError::USVGError { source: err })?;
 
         // height will be deduced from the scaled view_box
-        match resvg::render(&svg_tree, usvg::FitTo::Width(width), result_pixmap.as_mut()) {
+        match resvg::render(
+            &svg_tree,
+            usvg::FitTo::Width(pixmap_specs.width.floor() as u32),
+            result_pixmap.as_mut(),
+        ) {
             None => Err(StegError::PixmapRendering),
             Some(_) => Ok(result_pixmap),
         }

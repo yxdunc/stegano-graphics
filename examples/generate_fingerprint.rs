@@ -3,7 +3,7 @@ use std::path::Path;
 use stegs::stegs::color_palette::Palette;
 use stegs::stegs::steg_00_spiral::Spiral;
 use stegs::stegs::steg_01_fingerprint::Fingerprint;
-use stegs::stegs::{Steg, StegError};
+use stegs::stegs::{RenderSpecs, Steg, StegError};
 use svg_composer::element::attributes::{Color, ColorName, Paint};
 use tiny_skia::Pixmap;
 
@@ -38,8 +38,15 @@ fn main() {
     // steg = steg.set_render_debug(true);
     steg.render();
     println!("{}", steg.get_svg().render());
-    let pixmap = steg.get_pixmap(1000, 1000, 14, 100, 0, true);
-
+    let pixmap = steg.get_pixmap(RenderSpecs {
+        antialiasing: true,
+        transparent_background: false,
+        max_stroke: 100.0,
+        min_stroke: 14.0,
+        width: 1000.0,
+        height: 1000.0,
+        margin: 0.0,
+    });
     let pixmap = match pixmap {
         Ok(pxmp) => pxmp,
         Err(err) => {
