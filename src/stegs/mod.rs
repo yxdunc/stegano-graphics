@@ -26,6 +26,9 @@ use tiny_skia::{Pixmap, PixmapMut};
 use usvg;
 use usvg::ShapeRendering;
 
+// serialization
+use serde::Deserialize;
+
 #[derive(Error, Debug)]
 pub enum StegError {
     #[error("Couldn't allocate pixmap")]
@@ -46,10 +49,14 @@ pub enum StegError {
     Unknown,
 }
 
+#[derive(Deserialize, Debug)]
 pub struct RenderSpecs {
     pub antialiasing: bool,
+    #[serde(rename = "transparentBackground")]
     pub transparent_background: bool,
+    #[serde(rename = "maxStroke")]
     pub max_stroke: f32,
+    #[serde(rename = "minStroke")]
     pub min_stroke: f32,
     pub width: f32,
     pub height: f32,
@@ -71,7 +78,11 @@ pub trait Steg {
     fn get_shape_dimensions(&self) -> Dimensions2D;
     fn render(&mut self);
     fn get_svg(&self) -> &svg_composer::Document;
-    fn get_pixmap(&self, pixmap_specs: RenderSpecs) -> Result<Pixmap, StegError> {
+    fn get_pixmap(
+        &self,
+        pixmap_specs: RenderSpecs,
+        preview_width: Option<u32>,
+    ) -> Result<Pixmap, StegError> {
         let mut svg_document: &Document = self.get_svg();
         let mut svg_document: Document = svg_document.clone();
         let shape_dimensions = self.get_shape_dimensions();
@@ -133,7 +144,10 @@ pub trait Steg {
         // height will be deduced from the scaled view_box
         match resvg::render(
             &svg_tree,
-            usvg::FitTo::Width(pixmap_specs.width.floor() as u32),
+            match preview_width {
+                None => usvg::FitTo::Width(pixmap_specs.width.floor() as u32),
+                Some(pw) => usvg::FitTo::Width(pw),
+            },
             result_pixmap.as_mut(),
         ) {
             None => Err(StegError::PixmapRendering),
