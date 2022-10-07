@@ -4,7 +4,7 @@ use crate::geometry::radial::{
     compute_angle_from_section, compute_coordinates, is_between_circular_angles,
 };
 use crate::geometry::Dimensions2D;
-use crate::stegs::color_palette::Palette;
+use crate::stegs::color_palette::UsagePalette as Palette;
 use crate::stegs::Steg;
 use std::borrow::{Borrow, BorrowMut};
 use std::cmp::{max, min};

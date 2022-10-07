@@ -5,7 +5,7 @@ pub mod steg_01_fingerprint;
 // internal
 use crate::geometry::transforms::scale_to_fit;
 use crate::geometry::{Dimensions2D, GeometryError};
-use crate::stegs::color_palette::Palette;
+use crate::stegs::color_palette::UsagePalette as Palette;
 
 // svg composer
 use svg_composer::element::attributes::{Color, ColorName, Paint, Size};

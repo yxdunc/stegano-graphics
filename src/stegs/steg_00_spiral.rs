@@ -17,7 +17,7 @@ use svg_composer::Document;
 use crate::encoder::simple_latin_symbols;
 use crate::encoder::simple_latin_symbols::CHAR_LIST;
 use crate::geometry::Dimensions2D;
-use crate::stegs::color_palette::Palette;
+use crate::stegs::color_palette::UsagePalette as Palette;
 use crate::stegs::Steg;
 
 static DEFAULT_NB_SECTIONS: i8 = 26;

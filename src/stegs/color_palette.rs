@@ -1,7 +1,31 @@
 use svg_composer::element::attributes::{Color, ColorName, Paint};
 
+pub enum SteganoPalette {
+    Yellow00,
+    Brown00,
+    LightPink00,
+    Grey,
+    LightBlue00,
+    DarkBlue00,
+    Whitish00,
+}
+
+impl SteganoPalette {
+    pub fn to_paint(&self) -> Paint {
+        match *self {
+            SteganoPalette::Yellow00 => Paint::from_color(Color::from_rgb(245, 194, 102)),
+            SteganoPalette::Brown00 => Paint::from_color(Color::from_rgb(178, 92, 34)),
+            SteganoPalette::LightPink00 => Paint::from_color(Color::from_rgb(252, 226, 212)),
+            SteganoPalette::Grey => Paint::from_color(Color::from_rgb(90, 118, 126)),
+            SteganoPalette::LightBlue00 => Paint::from_color(Color::from_rgb(146, 189, 193)),
+            SteganoPalette::DarkBlue00 => Paint::from_color(Color::from_rgb(28, 53, 63)),
+            SteganoPalette::Whitish00 => Paint::from_color(Color::from_rgb(241, 241, 241)),
+        }
+    }
+}
+
 #[derive(Debug)]
-pub struct Palette {
+pub struct UsagePalette {
     pub primary: Paint,
     pub secondary: Paint,
     pub background_0: Paint,
@@ -12,9 +36,9 @@ pub struct Palette {
     pub error: Paint,
 }
 
-impl Palette {
+impl UsagePalette {
     pub fn default() -> Self {
-        Palette {
+        UsagePalette {
             primary: Paint::from_color(Color::from_name(ColorName::Aqua)),
             secondary: Paint::from_color(Color::from_name(ColorName::Fuchsia)),
             background_0: Paint::from_color(Color::from_name(ColorName::Gray)),
@@ -26,8 +50,8 @@ impl Palette {
         }
     }
     pub fn stegano_default() -> Self {
-        Palette {
-            primary: Paint::from_color(Color::from_rgb(245, 194, 102)), // yellow
+        UsagePalette {
+            primary: SteganoPalette::Yellow00.to_paint(),
             secondary: Paint::from_color(Color::from_rgb(178, 92, 34)), // brown
             background_0: Paint::from_color(Color::from_rgb(252, 226, 212)), // light pink
             background_1: Paint::from_color(Color::from_rgb(28, 53, 63)), // dark blue
@@ -38,7 +62,7 @@ impl Palette {
         }
     }
     pub fn stegano_variant() -> Self {
-        Palette {
+        UsagePalette {
             primary: Paint::from_color(Color::from_rgb(178, 92, 34)), // brown
             secondary: Paint::from_color(Color::from_rgb(245, 194, 102)), // yellow
             background_0: Paint::from_color(Color::from_rgb(28, 53, 63)), // dark blue
