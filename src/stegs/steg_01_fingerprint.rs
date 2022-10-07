@@ -348,21 +348,21 @@ impl Fingerprint {
             let end_point: (f64, f64) = (radius * (angle_2.cos()), radius * (angle_2.sin()));
 
             {
-                // eprintln!("--> current sections");
-                // eprintln!(
-                //     "--> {}, {}, ({}), {}, {}, {}",
-                //     section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
-                // );
-                // eprintln!("--> sections heights");
-                // eprintln!(
-                //     "--> {}, {}, ({}), {}, {}, {}",
-                //     self._sections_height[section_minus_2 as usize],
-                //     self._sections_height[section_minus_1 as usize],
-                //     self._sections_height[section_0 as usize],
-                //     self._sections_height[section_1 as usize],
-                //     self._sections_height[section_2 as usize],
-                //     self._sections_height[section_3 as usize],
-                // );
+                eprintln!("--> current sections");
+                eprintln!(
+                    "--> {}, {}, ({}), {}, {}, {}",
+                    section_minus_2, section_minus_1, section_0, section_1, section_2, section_3
+                );
+                eprintln!("--> sections heights");
+                eprintln!(
+                    "--> {}, {}, ({}), {}, {}, {}",
+                    self._sections_height[section_minus_2 as usize],
+                    self._sections_height[section_minus_1 as usize],
+                    self._sections_height[section_0 as usize],
+                    self._sections_height[section_1 as usize],
+                    self._sections_height[section_2 as usize],
+                    self._sections_height[section_3 as usize],
+                );
             } // debug prints
 
             if self._sections_height[section_0 as usize]
@@ -413,6 +413,7 @@ impl Fingerprint {
                         point: tmp_start_nose_point,
                         coordinate_type: Absolute,
                     }));
+                    self._sections_height[section_minus_1 as usize] += 1;
                 } else if i == sections.len() - 3
                     && self._sections_height[section_0 as usize]
                         > self._sections_height[section_1 as usize]
@@ -652,7 +653,7 @@ impl Fingerprint {
                     compressed_arc.append(
                         &mut self._new_height_transition(section_0, section_1, clockwise, false),
                     );
-                // i += 1;
+                    // i += 1;
                 } else {
                     eprintln!("----> default case");
                     if self._sections_height[section_0 as usize]

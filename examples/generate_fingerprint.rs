@@ -26,12 +26,11 @@ fn main() {
     // let message = "mistrust authority"; // very good
     // let message = "promote decentralization"; // good
     // let message = "you can create art on a computer"; // good
+    // let message = "all information should be free"; // good
+    // let message = "computers can change your life for the better"; // good
+    let message = "i m a hacker"; // good
 
-    let message = "all information should be free"; // not good
-    let message = "all informatiok"; // not good
-    let message = "your message";
     // let message = "only be judged by your hacking"; // not good
-    // let message = "computers can change your life for the better"; // not good
 
     // let message = "pierre"; // bugging...
     // let message = "squares";
