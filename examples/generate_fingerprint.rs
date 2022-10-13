@@ -1,67 +1,32 @@
 use std::io::Read;
 use std::path::Path;
-use stegs::stegs::color_palette::SteganoPalette;
 use stegs::stegs::color_palette::UsagePalette as Palette;
+use stegs::stegs::color_palette::{SteganoPalette, UsagePalette};
 use stegs::stegs::steg_00_spiral::Spiral;
 use stegs::stegs::steg_01_fingerprint::Fingerprint;
 use stegs::stegs::{RenderSpecs, Steg, StegError};
 use svg_composer::element::attributes::{Color, ColorName, Paint};
 use tiny_skia::Pixmap;
 
-fn main() {
-    // let message = "rmrmbzoq";
-    // let message = "stegano graphics";
-    // let message = "robin virginie";
-    // let message = "angeline combes";
-    // let message = "omoabl";
-    //     let message = "welcome you smart";
+fn generate_steg(
+    regular: bool,
+    msg: &str,
+    palette: UsagePalette,
+    antialiasing: bool,
+    save_in_tmp: bool,
+) {
+    let mut steg: Box<dyn Steg> = match regular {
+        true => Box::new(Spiral::new().set_text(msg).set_color_palette(palette)),
+        false => Box::new(Fingerprint::new().set_text(msg).set_color_palette(palette)),
+    };
 
-    let message = (
-        "generative art",
-        SteganoPalette::Yellow00.to_paint(),
-        SteganoPalette::Brown00.to_paint(),
-    );
-
-    // let message = "free access to computers"; // good
-    // let message = "mistrust authority"; // very good
-    // let message = "promote decentralization"; // good
-    // let message = "you can create art on a computer"; // good
-    // let message = "all information should be free"; // good
-    // let message = "computers can change your life for the better"; // good
-    let message = "i m a hacker"; // good
-
-    // let message = "only be judged by your hacking"; // not good
-
-    // let message = "pierre"; // bugging...
-    // let message = "squares";
-    // let message = "two rad";
-    // let message = "pi scale";
-    // let message = "crates";
-
-    let mut transparent_palette = Palette::stegano_default();
-    transparent_palette.background_1 = Paint::new_empty();
-
-    let stegano_default = Palette::stegano_default();
-
-    let mut custom_palette = Palette::stegano_default();
-    custom_palette.primary = SteganoPalette::Yellow00.to_paint();
-    custom_palette.background_1 = SteganoPalette::Brown00.to_paint();
-
-    let mut steg = Fingerprint::new()
-        // let mut steg = Spiral::new()
-        .set_text(message)
-        // .set_color_palette(custom_palette);
-        // .set_color_palette(Palette::stegano_default());
-        .set_color_palette(transparent_palette);
-    // .set_color_palette(Palette::stegano_default());
-    // .set_color_palette(transparent_palette);
-
-    // steg = steg.set_render_debug(true);
     steg.render();
+
     println!("{}", steg.get_svg().render());
+
     let pixmap = steg.get_pixmap(
         RenderSpecs {
-            antialiasing: false,
+            antialiasing,
             transparent_background: false,
             max_stroke: 100.0,
             min_stroke: 1.0,
@@ -78,11 +43,39 @@ fn main() {
             panic!();
         }
     };
-    // let raw_pixmap = pixmap.encode_png().unwrap();
-    // eprintln!("{:?}", raw_pixmap);
-    // pixmap.save_png(Path::new("/tmp/steg.png"));
-    pixmap.save_png(Path::new(&format!(
-        "/Users/robin/Desktop/rendered_stegs/to_sort/{}.png",
-        message
-    )));
+
+    match save_in_tmp {
+        true => {
+            pixmap.save_png(Path::new("/tmp/steg.png"));
+        }
+        false => {
+            pixmap.save_png(Path::new(&format!(
+                "/Users/robin/Desktop/rendered_stegs/to_sort/{}.png",
+                msg
+            )));
+        }
+    }
+}
+
+fn main() {
+    // let message = "free access to computers"; // good
+    // let message = "mistrust authority"; // very good
+    // let message = "promote decentralization"; // good
+    // let message = "you can create art on a computer"; // good
+    // let message = "all information should be free"; // good
+    // let message = "computers can change your life for the better"; // good
+    // let message = "i m a hacker"; // good
+
+    // let message = "only be judged by your hacking"; // not good
+
+    // let message = "pierre"; // bugging...
+
+    let steg_descriptions = vec![("music", SteganoPalette::LightPink00, SteganoPalette::Grey)];
+
+    for steg_description in steg_descriptions {
+        let mut palette = UsagePalette::default();
+        palette.primary = steg_description.1.to_paint();
+        palette.background_1 = steg_description.2.to_paint();
+        generate_steg(false, steg_description.0, palette, true, false);
+    }
 }

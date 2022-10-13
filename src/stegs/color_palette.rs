@@ -8,6 +8,7 @@ pub enum SteganoPalette {
     LightBlue00,
     DarkBlue00,
     Whitish00,
+    Transparent,
 }
 
 impl SteganoPalette {
@@ -20,6 +21,7 @@ impl SteganoPalette {
             SteganoPalette::LightBlue00 => Paint::from_color(Color::from_rgb(146, 189, 193)),
             SteganoPalette::DarkBlue00 => Paint::from_color(Color::from_rgb(28, 53, 63)),
             SteganoPalette::Whitish00 => Paint::from_color(Color::from_rgb(241, 241, 241)),
+            SteganoPalette::Transparent => Paint::new_empty(),
         }
     }
 }
