@@ -26,7 +26,7 @@ impl SteganoPalette {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct UsagePalette {
     pub primary: Paint,
     pub secondary: Paint,

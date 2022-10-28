@@ -8,18 +8,13 @@ use stegs::stegs::{RenderSpecs, Steg, StegError};
 use svg_composer::element::attributes::{Color, ColorName, Paint};
 use tiny_skia::Pixmap;
 
-fn generate_steg(
-    regular: bool,
-    msg: &str,
-    palette: UsagePalette,
-    antialiasing: bool,
-    save_in_tmp: bool,
-) {
-    let mut steg: Box<dyn Steg> = match regular {
-        true => Box::new(Spiral::new().set_text(msg).set_color_palette(palette)),
-        false => Box::new(Fingerprint::new().set_text(msg).set_color_palette(palette)),
-    };
+enum GenerationType {
+    Both,
+    Regular,
+    Fingerprint,
+}
 
+fn render_steg(mut steg: Box<dyn Steg>, path: &str, antialiasing: bool) {
     steg.render();
 
     println!("{}", steg.get_svg().render());
@@ -43,18 +38,41 @@ fn generate_steg(
             panic!();
         }
     };
+    pixmap.save_png(Path::new(path));
+}
 
-    match save_in_tmp {
-        true => {
-            pixmap.save_png(Path::new("/tmp/steg.png"));
+fn generate_steg(
+    regular: GenerationType,
+    msg: &str,
+    palette: UsagePalette,
+    antialiasing: bool,
+    base_path: &str,
+) {
+    match regular {
+        GenerationType::Both => {
+            let steg_regular = Box::new(Spiral::new().set_text(msg).set_color_palette(palette));
+            let steg_fingerprint =
+                Box::new(Fingerprint::new().set_text(msg).set_color_palette(palette));
+            render_steg(
+                steg_regular,
+                &format!("{}/{}_{}.png", base_path, msg, "00"),
+                antialiasing,
+            );
+            render_steg(
+                steg_fingerprint,
+                &format!("{}/{}_{}.png", base_path, msg, "01"),
+                antialiasing,
+            );
         }
-        false => {
-            pixmap.save_png(Path::new(&format!(
-                "/Users/robin/Desktop/rendered_stegs/to_sort/{}.png",
-                msg
-            )));
+        GenerationType::Regular => {
+            let steg = Box::new(Spiral::new().set_text(msg).set_color_palette(palette));
+            render_steg(steg, &format!("{}/{}.png", base_path, msg), antialiasing);
         }
-    }
+        GenerationType::Fingerprint => {
+            let steg = Box::new(Fingerprint::new().set_text(msg).set_color_palette(palette));
+            render_steg(steg, &format!("{}/{}.png", base_path, msg), antialiasing);
+        }
+    };
 }
 
 fn main() {
@@ -70,12 +88,24 @@ fn main() {
 
     // let message = "pierre"; // bugging...
 
-    let steg_descriptions = vec![("music", SteganoPalette::LightPink00, SteganoPalette::Grey)];
+    // your eyes give a live to what they see
+
+    let steg_descriptions = vec![(
+        "hello world",
+        SteganoPalette::Yellow00,
+        SteganoPalette::DarkBlue00,
+    )];
 
     for steg_description in steg_descriptions {
         let mut palette = UsagePalette::default();
         palette.primary = steg_description.1.to_paint();
         palette.background_1 = steg_description.2.to_paint();
-        generate_steg(false, steg_description.0, palette, true, false);
+        generate_steg(
+            GenerationType::Both,
+            &steg_description.0.to_lowercase(),
+            palette,
+            false,
+            "/Users/robin/Desktop/rendered_stegs/aa_to_sort",
+        );
     }
 }
