@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-use std::f64::consts::PI;
 use std::f64::consts::TAU;
 
 pub fn compute_coordinates(orig: (f64, f64), angle: f64, radius: f64) -> (f64, f64) {
@@ -14,7 +12,7 @@ pub fn compute_angle_from_section(section: i32, nb_sections: i32) -> f64 {
     let nb_sections = nb_sections as f64;
     let section = section as f64;
 
-    (section * (TAU / nb_sections))
+    section * (TAU / nb_sections)
 }
 
 pub fn compute_angular_size(length: f64, distance_to_center: f64) -> f64 {
@@ -55,6 +53,7 @@ pub fn is_between_circular_angles(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::f64::consts::PI;
 
     #[test]
     fn should_give_angle_for_section() {

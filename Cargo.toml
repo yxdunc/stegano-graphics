@@ -3,24 +3,15 @@ name = "stegs"
 version = "0.1.0"
 authors = ["robin <yxdunc@users.noreply.github.com>"]
 edition = "2018"
+description = "Generative SVG stegs for stegano.graphics"
+license = "MIT"
+repository = "https://github.com/yxdunc/stegano-graphics"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 [dependencies]
-# serialization with serde
-# TODO make into a cargo optional feature
-serde = {version = "1.0.123", features = ["derive"] }
-serde_json = "1.0"
-
-
-# error handling
-thiserror = "1.0"
-
-# compose svg
-svg_composer = { path = "../svg_composer", version = "0.1.0" }
-
-# render svg
-resvg = "0.13.1"
-usvg = "0.13.1"
-fontdb = "0.5.1"
-tiny-skia = "0.4.1"
+wasm-bindgen = "0.2"

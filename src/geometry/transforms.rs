@@ -1,5 +1,4 @@
 use super::GeometryError;
-use std::fmt::Display;
 
 /// Generate to viewbox in the shape coordinate system that will make the shape scale to fit if
 /// then converted to the coordinate system of width and height. On top of that you can set a
@@ -118,10 +117,10 @@ pub fn scale_to_fit(
 }
 
 mod tests {
-    use super::*;
     #[cfg(test)]
     mod scale_to_fit {
-        use super::*;
+        use crate::geometry::transforms::scale_to_fit;
+        use crate::geometry::GeometryError;
 
         #[test]
         fn should_preserve_aspect_ratio() {
